@@ -2,63 +2,217 @@
 session_start();
 include 'koneksi.php';
 
-// Keamanan RBAC: Hanya untuk Staff Gudang / User terautentikasi
-if(!isset($_SESSION['user_id'])) {
+// Keamanan: halaman hanya dapat dibuka oleh pengguna yang sudah login.
+if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
 }
+$user_id = (int) $_SESSION['user_id'];
 
-$user_id = $_SESSION['user_id'];
+$jenis_produk_opsi = [
+    'Cushion', 'Setting Spray', 'Foundation', 'Concealer', 'Bedak', 'Primer',
+    'Blush On', 'Highlighter', 'Contour', 'Lip Tint', 'Lipstick', 'Lip Gloss',
+    'Mascara', 'Eyeshadow Palette', 'Pensil Alis', 'Eyeliner', 'Micellar Water',
+    'Facial Wash', 'Toner', 'Serum', 'Moisturizer', 'Sunscreen', 'Lainnya'
+];
+$jenis_kulit_opsi = ['Normal', 'Berminyak', 'Kering', 'Kombinasi', 'Semua jenis kulit'];
+$finish_opsi = ['Matte', 'Dewy', 'Satin', 'Natural', 'Glowy', 'Tidak berlaku'];
+$tag_opsi = [
+    'Oil Control', 'Lightweight', 'Hydrating', 'Long Lasting', 'Non-Comedogenic',
+    'Waterproof', 'Transferproof', 'Fragrance-Free', 'Coverage Ringan',
+    'Coverage Medium', 'Coverage Full'
+];
+
+function mwk_h($value) {
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+}
+
+function mwk_tabel_rekomendasi_ada($conn, $namaTabel) {
+    $allowed = ['product_recommendation_profiles', 'product_profile_skin_types', 'product_profile_tags'];
+    if (!in_array($namaTabel, $allowed, true)) return false;
+    $nama = mysqli_real_escape_string($conn, $namaTabel);
+    $q = mysqli_query($conn, "SHOW TABLES LIKE '{$nama}'");
+    return $q && mysqli_num_rows($q) > 0;
+}
+
+$fitur_rekomendasi_siap = mwk_tabel_rekomendasi_ada($conn, 'product_recommendation_profiles')
+    && mwk_tabel_rekomendasi_ada($conn, 'product_profile_skin_types')
+    && mwk_tabel_rekomendasi_ada($conn, 'product_profile_tags');
+
+/** Simpan atribut rekomendasi untuk satu produk. Harus dipanggil di dalam transaksi. */
+function mwk_simpan_atribut_rekomendasi($conn, $productId, $jenisProduk, $finish, $catatan, array $jenisKulit, array $tags) {
+    $finishDb = ($finish === '' || $finish === 'Tidak berlaku') ? null : $finish;
+    $catatan = trim($catatan);
+    if (mb_strlen($catatan, 'UTF-8') > 255) $catatan = mb_substr($catatan, 0, 255, 'UTF-8');
+
+    $stmt = mysqli_prepare($conn, "INSERT INTO product_recommendation_profiles
+        (product_id, jenis_produk, finish, catatan_rekomendasi, aktif)
+        VALUES (?, ?, ?, ?, 1)
+        ON DUPLICATE KEY UPDATE jenis_produk = VALUES(jenis_produk), finish = VALUES(finish),
+        catatan_rekomendasi = VALUES(catatan_rekomendasi), aktif = 1");
+    if (!$stmt) return false;
+    mysqli_stmt_bind_param($stmt, 'isss', $productId, $jenisProduk, $finishDb, $catatan);
+    $ok = mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+    if (!$ok) return false;
+
+    foreach (['product_profile_skin_types', 'product_profile_tags'] as $tabel) {
+        $del = mysqli_prepare($conn, "DELETE FROM {$tabel} WHERE product_id = ?");
+        if (!$del) return false;
+        mysqli_stmt_bind_param($del, 'i', $productId);
+        $ok = mysqli_stmt_execute($del);
+        mysqli_stmt_close($del);
+        if (!$ok) return false;
+    }
+
+    if ($jenisKulit) {
+        $insSkin = mysqli_prepare($conn, "INSERT INTO product_profile_skin_types (product_id, jenis_kulit) VALUES (?, ?)");
+        if (!$insSkin) return false;
+        foreach ($jenisKulit as $skin) {
+            mysqli_stmt_bind_param($insSkin, 'is', $productId, $skin);
+            if (!mysqli_stmt_execute($insSkin)) { mysqli_stmt_close($insSkin); return false; }
+        }
+        mysqli_stmt_close($insSkin);
+    }
+
+    if ($tags) {
+        $insTag = mysqli_prepare($conn, "INSERT INTO product_profile_tags (product_id, nama_tag) VALUES (?, ?)");
+        if (!$insTag) return false;
+        foreach ($tags as $tag) {
+            mysqli_stmt_bind_param($insTag, 'is', $productId, $tag);
+            if (!mysqli_stmt_execute($insTag)) { mysqli_stmt_close($insTag); return false; }
+        }
+        mysqli_stmt_close($insTag);
+    }
+    return true;
+}
+
+function mwk_validasi_atribut_rekomendasi($post, $jenisProdukOpsi, $jenisKulitOpsi, $finishOpsi, $tagOpsi) {
+    $jenisProduk = trim((string) ($post['jenis_produk'] ?? ''));
+    $finish = trim((string) ($post['finish'] ?? ''));
+    $catatan = trim((string) ($post['catatan_rekomendasi'] ?? ''));
+    $jenisKulit = array_values(array_unique(array_intersect($jenisKulitOpsi, (array) ($post['jenis_kulit'] ?? []))));
+    $tags = array_values(array_unique(array_intersect($tagOpsi, (array) ($post['karakteristik'] ?? []))));
+
+    if (!in_array($jenisProduk, $jenisProdukOpsi, true)) {
+        return [false, 'Pilih jenis produk terlebih dahulu.', null];
+    }
+    if ($finish !== '' && !in_array($finish, $finishOpsi, true)) {
+        return [false, 'Pilihan finish tidak valid.', null];
+    }
+    if (!$jenisKulit) {
+        return [false, 'Pilih minimal satu kecocokan jenis kulit. Gunakan Semua jenis kulit jika produk dapat digunakan semua jenis kulit.', null];
+    }
+    if (in_array('Semua jenis kulit', $jenisKulit, true)) {
+        $jenisKulit = ['Semua jenis kulit'];
+    }
+    return [true, '', [
+        'jenis_produk' => $jenisProduk,
+        'finish' => $finish,
+        'catatan' => $catatan,
+        'jenis_kulit' => $jenisKulit,
+        'tags' => $tags
+    ]];
+}
 
 // 1. Handler Update Status Tugas (OAS)
-if(isset($_POST['update_task'])) {
+if (isset($_POST['update_task'])) {
     $task_id = intval($_POST['task_id']);
     $pk_col = preg_replace('/[^a-zA-Z0-9_]/', '', $_POST['pk_col'] ?? 'id');
     $status = mysqli_real_escape_string($conn, $_POST['status_tugas']);
-    
     mysqli_query($conn, "UPDATE tasks SET status_tugas='$status' WHERE `$pk_col`=$task_id");
     header("Location: dashboard_gudang.php"); exit();
 }
 
 // 2. Handler Restock Barang Lama (TPS)
-if(isset($_POST['add_stock'])) {
+if (isset($_POST['add_stock'])) {
     $product_id = intval($_POST['product_id']);
-    $qty_tambah = intval($_POST['qty_tambah']);
+    $qty_tambah = max(0, intval($_POST['qty_tambah']));
     mysqli_query($conn, "UPDATE products SET stok = stok + $qty_tambah WHERE product_id=$product_id");
     header("Location: dashboard_gudang.php"); exit();
 }
 
-// 3. Handler Tambah Produk Baru
-if(isset($_POST['create_product'])) {
-    $nama = mysqli_real_escape_string($conn, $_POST['nama_produk']);
-    $kategori = mysqli_real_escape_string($conn, $_POST['kategori']);
-    $harga = intval($_POST['harga']);
-    $stok = intval($_POST['stok']);
-    $gambar = mysqli_real_escape_string($conn, $_POST['gambar']);
+// 3. Handler Tambah Produk Baru beserta atribut rekomendasi
+if (isset($_POST['create_product'])) {
+    if (!$fitur_rekomendasi_siap) {
+        $_SESSION['error_msg'] = 'Tabel rekomendasi belum tersedia. Jalankan db_migration/01_migrasi_produk_rekomendasi.sql terlebih dahulu.';
+    } else {
+        [$valid, $pesanValidasi, $atribut] = mwk_validasi_atribut_rekomendasi($_POST, $jenis_produk_opsi, $jenis_kulit_opsi, $finish_opsi, $tag_opsi);
+        $nama = trim($_POST['nama_produk'] ?? '');
+        $kategori = trim($_POST['kategori'] ?? '');
+        $harga = (float) ($_POST['harga'] ?? 0);
+        $stok = (int) ($_POST['stok'] ?? 0);
+        $gambar = trim($_POST['gambar'] ?? '');
 
-    mysqli_query($conn, "INSERT INTO products (nama_produk, kategori, harga, stok, gambar) VALUES ('$nama', '$kategori', $harga, $stok, '$gambar')");
+        if (!$valid) {
+            $_SESSION['error_msg'] = $pesanValidasi;
+        } elseif ($nama === '' || $kategori === '' || $harga < 0 || $stok < 0 || $gambar === '') {
+            $_SESSION['error_msg'] = 'Lengkapi data produk dengan benar. Harga dan stok tidak boleh negatif.';
+        } else {
+            mysqli_begin_transaction($conn);
+            $stmt = mysqli_prepare($conn, "INSERT INTO products (nama_produk, kategori, harga, stok, gambar) VALUES (?, ?, ?, ?, ?)");
+            $ok = false;
+            if ($stmt) {
+                mysqli_stmt_bind_param($stmt, 'ssdis', $nama, $kategori, $harga, $stok, $gambar);
+                // Tipe bind yang benar: string, string, double, integer, string.
+                $ok = mysqli_stmt_execute($stmt);
+                $productId = mysqli_insert_id($conn);
+                mysqli_stmt_close($stmt);
+            }
+            if ($ok && mwk_simpan_atribut_rekomendasi($conn, $productId, $atribut['jenis_produk'], $atribut['finish'], $atribut['catatan'], $atribut['jenis_kulit'], $atribut['tags'])) {
+                mysqli_commit($conn);
+                $_SESSION['success_msg'] = 'Produk berhasil ditambahkan ke katalog beserta atribut rekomendasinya.';
+            } else {
+                mysqli_rollback($conn);
+                $_SESSION['error_msg'] = 'Produk gagal disimpan. Periksa kembali database dan jalankan kedua tabel migrasi produk rekomendasi.';
+            }
+        }
+    }
     header("Location: dashboard_gudang.php"); exit();
 }
 
-// 4. Handler Edit Produk
-if(isset($_POST['edit_product'])) {
-    $product_id = intval($_POST['product_id']);
-    $nama = mysqli_real_escape_string($conn, $_POST['nama_produk']);
-    $kategori = mysqli_real_escape_string($conn, $_POST['kategori']);
-    $harga = intval($_POST['harga']);
-    $stok = intval($_POST['stok']);
+// 4. Handler Edit Produk beserta atribut rekomendasi
+if (isset($_POST['edit_product'])) {
+    if (!$fitur_rekomendasi_siap) {
+        $_SESSION['error_msg'] = 'Tabel rekomendasi belum tersedia. Jalankan db_migration/01_migrasi_produk_rekomendasi.sql terlebih dahulu.';
+    } else {
+        [$valid, $pesanValidasi, $atribut] = mwk_validasi_atribut_rekomendasi($_POST, $jenis_produk_opsi, $jenis_kulit_opsi, $finish_opsi, $tag_opsi);
+        $product_id = (int) ($_POST['product_id'] ?? 0);
+        $nama = trim($_POST['nama_produk'] ?? '');
+        $kategori = trim($_POST['kategori'] ?? '');
+        $harga = (float) ($_POST['harga'] ?? 0);
+        $stok = (int) ($_POST['stok'] ?? 0);
 
-    mysqli_query($conn, "UPDATE products SET nama_produk='$nama', kategori='$kategori', harga=$harga, stok=$stok WHERE product_id=$product_id");
+        if (!$valid) {
+            $_SESSION['error_msg'] = $pesanValidasi;
+        } elseif ($product_id <= 0 || $nama === '' || $kategori === '' || $harga < 0 || $stok < 0) {
+            $_SESSION['error_msg'] = 'Data produk tidak valid.';
+        } else {
+            mysqli_begin_transaction($conn);
+            $stmt = mysqli_prepare($conn, "UPDATE products SET nama_produk = ?, kategori = ?, harga = ?, stok = ? WHERE product_id = ?");
+            $ok = false;
+            if ($stmt) {
+                mysqli_stmt_bind_param($stmt, 'ssdii', $nama, $kategori, $harga, $stok, $product_id);
+                $ok = mysqli_stmt_execute($stmt);
+                mysqli_stmt_close($stmt);
+            }
+            if ($ok && mwk_simpan_atribut_rekomendasi($conn, $product_id, $atribut['jenis_produk'], $atribut['finish'], $atribut['catatan'], $atribut['jenis_kulit'], $atribut['tags'])) {
+                mysqli_commit($conn);
+                $_SESSION['success_msg'] = 'Data produk dan atribut rekomendasi berhasil diperbarui.';
+            } else {
+                mysqli_rollback($conn);
+                $_SESSION['error_msg'] = 'Perubahan produk gagal disimpan. Periksa kembali database.';
+            }
+        }
+    }
     header("Location: dashboard_gudang.php"); exit();
 }
 
 // 5. Handler Kirim Laporan Audit Stok ke Manager
-if(isset($_POST['send_audit_report'])) {
+if (isset($_POST['send_audit_report'])) {
     $judul = mysqli_real_escape_string($conn, $_POST['judul_laporan']);
     $catatan = mysqli_real_escape_string($conn, $_POST['catatan_audit']);
     $kondisi_stok = mysqli_real_escape_string($conn, $_POST['kondisi_stok'] ?? 'Sesuai / Fisik Match');
-
-    // Buat tabel laporan_audit otomatis jika belum ada di database
     mysqli_query($conn, "CREATE TABLE IF NOT EXISTS laporan_audit (
         id_laporan INT AUTO_INCREMENT PRIMARY KEY,
         id_user INT NOT NULL,
@@ -68,25 +222,39 @@ if(isset($_POST['send_audit_report'])) {
         status_review VARCHAR(50) DEFAULT 'Menunggu Review',
         tgl_kirim DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
-
-    $q_insert = "INSERT INTO laporan_audit (id_user, judul_laporan, kondisi_stok, catatan_audit, status_review) 
+    $q_insert = "INSERT INTO laporan_audit (id_user, judul_laporan, kondisi_stok, catatan_audit, status_review)
                  VALUES ('$user_id', '$judul', '$kondisi_stok', '$catatan', 'Menunggu Review')";
-    
-    if(mysqli_query($conn, $q_insert)) {
-        $_SESSION['success_msg'] = "🚀 Laporan Audit Stok berhasil dikirim ke Manager!";
+    if (mysqli_query($conn, $q_insert)) {
+        $_SESSION['success_msg'] = 'Laporan Audit Stok berhasil dikirim ke Manager!';
     } else {
-        $_SESSION['error_msg'] = "❌ Gagal mengirim laporan: " . mysqli_error($conn);
+        $_SESSION['error_msg'] = 'Gagal mengirim laporan audit.';
     }
-
     header("Location: dashboard_gudang.php"); exit();
 }
 
 // Ambil Data Produk yang akan Diedit
 $edit_data = null;
-if(isset($_GET['action']) && $_GET['action'] == 'edit') {
-    $id_edit = intval($_GET['id']);
+$edit_profile = ['jenis_produk' => '', 'finish' => '', 'catatan_rekomendasi' => ''];
+$edit_skin_types = [];
+$edit_tags = [];
+if (isset($_GET['action']) && $_GET['action'] === 'edit') {
+    $id_edit = (int) ($_GET['id'] ?? 0);
     $res = mysqli_query($conn, "SELECT * FROM products WHERE product_id=$id_edit");
-    $edit_data = mysqli_fetch_assoc($res);
+    $edit_data = $res ? mysqli_fetch_assoc($res) : null;
+    if ($edit_data && $fitur_rekomendasi_siap) {
+        $qProfile = mysqli_prepare($conn, "SELECT jenis_produk, finish, catatan_rekomendasi FROM product_recommendation_profiles WHERE product_id = ?");
+        if ($qProfile) {
+            mysqli_stmt_bind_param($qProfile, 'i', $id_edit);
+            mysqli_stmt_execute($qProfile);
+            $profileResult = mysqli_stmt_get_result($qProfile);
+            $edit_profile = mysqli_fetch_assoc($profileResult) ?: $edit_profile;
+            mysqli_stmt_close($qProfile);
+        }
+        $qSkin = mysqli_query($conn, "SELECT jenis_kulit FROM product_profile_skin_types WHERE product_id=$id_edit");
+        while ($qSkin && $r = mysqli_fetch_assoc($qSkin)) $edit_skin_types[] = $r['jenis_kulit'];
+        $qTags = mysqli_query($conn, "SELECT nama_tag FROM product_profile_tags WHERE product_id=$id_edit");
+        while ($qTags && $r = mysqli_fetch_assoc($qTags)) $edit_tags[] = $r['nama_tag'];
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -119,6 +287,16 @@ if(isset($_GET['action']) && $_GET['action'] == 'edit') {
         .btn-audit:hover { background: #01579b; }
         .btn-edit { background: #ff9800; color: white; text-decoration: none; padding: 3px 8px; border-radius: 3px; font-size: 11px; font-weight: bold; }
         select { padding: 5px; border-radius: 4px; border: 1px solid #ccc; }
+        .subsection { margin: 16px 0 12px; padding: 13px; border: 1px solid #f3d7e3; border-radius: 9px; background: #fff9fc; }
+        .subsection h4 { margin: 0 0 6px; color: #ad426e; font-size: 14px; }
+        .subsection p { margin: 0 0 10px; color: #777; font-size: 11px; line-height: 1.5; }
+        .metadata-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .check-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 7px 10px; }
+        .check-item { display: flex; align-items: center; gap: 7px; color: #555; font-size: 12px; font-weight: 500; }
+        .check-item input { accent-color: #d81b60; }
+        .hint { color: #777; font-size: 11px; line-height: 1.5; }
+        @media(max-width:850px) { .grid { grid-template-columns: 1fr; } }
+        @media(max-width:520px) { body { padding: 10px; } .header { display:block; } .header h2 { font-size:18px; } .metadata-grid { grid-template-columns:1fr; } }
 
         .alert { padding: 10px 15px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; font-weight: bold; }
         .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
@@ -128,7 +306,7 @@ if(isset($_GET['action']) && $_GET['action'] == 'edit') {
 <body>
     <div class="header">
         <h2>🏭 Portal Inventory Management (Staff Gudang)</h2>
-        <div><span>Logged in: <b><?php echo $_SESSION['email']; ?></b></span> |
+        <div><span>Logged in: <b><?php echo mwk_h($_SESSION['email'] ?? ''); ?></b></span> |
         <a href="index.php" class="btn" style="display:inline-block; padding:8px 15px; border-radius:5px; text-decoration:none; font-weight:bold; font-size:13px; background:#d81b60; color:white; margin-right:5px;">📚 Panduan & SOP Gudang (KMS)</a>
         <a href="logout.php" class="btn-logout">Logout</a></div>
     </div>
@@ -145,6 +323,10 @@ if(isset($_GET['action']) && $_GET['action'] == 'edit') {
         </div>
     <?php endif; ?>
 
+    <?php if (!$fitur_rekomendasi_siap): ?>
+        <div class="alert alert-danger">Fitur rekomendasi produk belum disiapkan. Import <b>db_migration/01_migrasi_produk_rekomendasi.sql</b> ke database <b>mawarkuntum</b> terlebih dahulu.</div>
+    <?php endif; ?>
+
     <div class="grid">
         <!-- Kolom Kiri: Form Input Produk, Form Audit, & Tugas Operasional -->
         <div>
@@ -152,45 +334,101 @@ if(isset($_GET['action']) && $_GET['action'] == 'edit') {
             <div class="card">
                 <h3><?php echo $edit_data ? '✏️ Edit Data Produk' : '✨ Tambah Produk Baru (Katalog)'; ?></h3>
                 <form method="POST" action="dashboard_gudang.php">
-                    <?php if($edit_data): ?>
-                        <input type="hidden" name="product_id" value="<?php echo $edit_data['product_id']; ?>">
+                    <?php if ($edit_data): ?>
+                        <input type="hidden" name="product_id" value="<?php echo (int) $edit_data['product_id']; ?>">
                     <?php endif; ?>
 
                     <div class="form-group">
                         <label>Nama Produk</label>
-                        <input type="text" name="nama_produk" class="form-control" placeholder="Contoh: Mawarkuntum Micellar Water" value="<?php echo $edit_data['nama_produk'] ?? ''; ?>" required>
+                        <input type="text" name="nama_produk" class="form-control" placeholder="Contoh: Mawarkuntum Matte Cushion" value="<?php echo mwk_h($edit_data['nama_produk'] ?? ''); ?>" required>
                     </div>
 
-                    <div style="display:flex; gap:10px;">
-                        <div class="form-group" style="flex:1;">
-                            <label>Kategori</label>
+                    <div class="metadata-grid">
+                        <div class="form-group">
+                            <label>Kategori Katalog</label>
                             <select name="kategori" class="form-control" required>
-                                <option value="Face" <?php echo (isset($edit_data) && $edit_data['kategori']=='Face')?'selected':''; ?>>Face</option>
-                                <option value="Lips" <?php echo (isset($edit_data) && $edit_data['kategori']=='Lips')?'selected':''; ?>>Lips</option>
-                                <option value="Eye" <?php echo (isset($edit_data) && $edit_data['kategori']=='Eye')?'selected':''; ?>>Eye</option>
-                                <option value="Cleanser" <?php echo (isset($edit_data) && $edit_data['kategori']=='Cleanser')?'selected':''; ?>>Cleanser</option>
+                                <?php foreach (['Face', 'Lips', 'Eye', 'Eyes', 'Cleanser'] as $kategoriPilihan): ?>
+                                    <option value="<?php echo mwk_h($kategoriPilihan); ?>" <?php echo (($edit_data['kategori'] ?? 'Face') === $kategoriPilihan) ? 'selected' : ''; ?>><?php echo mwk_h($kategoriPilihan); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <span class="hint">Tetap dipakai untuk filter kategori katalog yang sudah ada.</span>
+                        </div>
+                        <div class="form-group">
+                            <label>Jenis Produk</label>
+                            <select name="jenis_produk" class="form-control" required>
+                                <option value="">-- Pilih jenis produk --</option>
+                                <?php foreach ($jenis_produk_opsi as $opsi): ?>
+                                    <option value="<?php echo mwk_h($opsi); ?>" <?php echo (($edit_profile['jenis_produk'] ?? '') === $opsi) ? 'selected' : ''; ?>><?php echo mwk_h($opsi); ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="form-group" style="flex:1;">
+                    </div>
+
+                    <div class="metadata-grid">
+                        <div class="form-group">
                             <label>Harga (Rp)</label>
-                            <input type="number" name="harga" class="form-control" placeholder="50000" value="<?php echo $edit_data['harga'] ?? ''; ?>" required>
+                            <input type="number" name="harga" class="form-control" min="0" step="1" placeholder="125000" value="<?php echo mwk_h($edit_data['harga'] ?? ''); ?>" required>
                         </div>
-                    </div>
-
-                    <div style="display:flex; gap:10px;">
-                        <div class="form-group" style="flex:1;">
+                        <div class="form-group">
                             <label>Stok Awal</label>
-                            <input type="number" name="stok" class="form-control" placeholder="50" value="<?php echo $edit_data['stok'] ?? ''; ?>" required>
+                            <input type="number" name="stok" class="form-control" min="0" step="1" placeholder="50" value="<?php echo mwk_h($edit_data['stok'] ?? ''); ?>" required>
                         </div>
-                        <?php if(!$edit_data): ?>
-                        <div class="form-group" style="flex:1;">
-                            <label>URL Gambar / Path</label>
-                            <input type="text" name="gambar" class="form-control" placeholder="images/micellar.jpg" value="https://via.placeholder.com/200" required>
-                        </div>
-                        <?php endif; ?>
                     </div>
 
-                    <?php if($edit_data): ?>
+                    <?php if (!$edit_data): ?>
+                        <div class="form-group">
+                            <label>URL Gambar / Path</label>
+                            <input type="text" name="gambar" class="form-control" placeholder="https://... atau images/produk.jpg" value="" required>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="subsection">
+                        <h4>🌸 Atribut untuk Rekomendasi Expert System</h4>
+                        <p>Isi berdasarkan deskripsi resmi produk atau informasi supplier. Atribut ini akan dipakai Asisten Virtual untuk mencocokkan kebutuhan pelanggan.</p>
+
+                        <div class="form-group">
+                            <label>Cocok untuk Jenis Kulit <span style="color:#d81b60">*</span></label>
+                            <div class="check-grid" id="skin-options">
+                                <?php foreach ($jenis_kulit_opsi as $i => $skin): ?>
+                                    <label class="check-item">
+                                        <input type="checkbox" name="jenis_kulit[]" value="<?php echo mwk_h($skin); ?>" class="skin-check" <?php echo in_array($skin, $edit_skin_types, true) ? 'checked' : ''; ?>>
+                                        <?php echo mwk_h($skin); ?>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                            <span class="hint">Pilih minimal satu. Jika memilih “Semua jenis kulit”, pilihan lainnya otomatis dinonaktifkan.</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Finish / Hasil Akhir Makeup</label>
+                            <select name="finish" class="form-control">
+                                <option value="">-- Belum ditentukan / tidak perlu --</option>
+                                <?php foreach ($finish_opsi as $opsi): ?>
+                                    <option value="<?php echo mwk_h($opsi); ?>" <?php echo (($edit_profile['finish'] ?? '') === $opsi) ? 'selected' : ''; ?>><?php echo mwk_h($opsi); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <span class="hint">Contoh: Matte, Dewy, Satin, Natural, atau Glowy. Untuk produk tanpa finish, biarkan kosong atau pilih Tidak berlaku.</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Karakteristik / Manfaat Produk</label>
+                            <div class="check-grid">
+                                <?php foreach ($tag_opsi as $tag): ?>
+                                    <label class="check-item">
+                                        <input type="checkbox" name="karakteristik[]" value="<?php echo mwk_h($tag); ?>" <?php echo in_array($tag, $edit_tags, true) ? 'checked' : ''; ?>>
+                                        <?php echo mwk_h($tag); ?>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Catatan Kecocokan (opsional)</label>
+                            <input type="text" name="catatan_rekomendasi" class="form-control" maxlength="255" placeholder="Contoh: formula ringan dan membantu mengontrol kilap" value="<?php echo mwk_h($edit_profile['catatan_rekomendasi'] ?? ''); ?>">
+                        </div>
+                    </div>
+
+                    <?php if ($edit_data): ?>
                         <button type="submit" name="edit_product" class="btn-sub" style="background:#ff9800;">Simpan Perubahan</button>
                         <a href="dashboard_gudang.php" style="margin-left:10px; font-size:12px; color:#666;">Batal</a>
                     <?php else: ?>
@@ -282,12 +520,19 @@ if(isset($_GET['action']) && $_GET['action'] == 'edit') {
                 <table>
                     <tr><th>Produk</th><th>Harga</th><th>Sisa Stok</th><th>Restock Cepat</th><th>Aksi</th></tr>
                     <?php
-                    $products = mysqli_query($conn, "SELECT * FROM products ORDER BY product_id DESC");
-                    while($p = mysqli_fetch_assoc($products)) {
+                    if ($fitur_rekomendasi_siap) {
+                        $products = mysqli_query($conn, "SELECT p.*, rp.jenis_produk, rp.finish,
+                            (SELECT GROUP_CONCAT(s.jenis_kulit SEPARATOR ', ') FROM product_profile_skin_types s WHERE s.product_id = p.product_id) AS rekomendasi_kulit
+                            FROM products p LEFT JOIN product_recommendation_profiles rp ON rp.product_id = p.product_id
+                            ORDER BY p.product_id DESC");
+                    } else {
+                        $products = mysqli_query($conn, "SELECT * FROM products ORDER BY product_id DESC");
+                    }
+                    while($products && $p = mysqli_fetch_assoc($products)) {
                         $isLow = $p['stok'] < 25;
                         $badgeStok = $isLow ? "<span class='badge badge-low'>{$p['stok']} pcs</span>" : "<b>{$p['stok']} pcs</b>";
                         echo "<tr>
-                            <td><b>{$p['nama_produk']}</b><br><small style='color:#777;'>{$p['kategori']}</small></td>
+                            <td><b>" . mwk_h($p['nama_produk']) . "</b><br><small style='color:#777;'>" . mwk_h($p['kategori']) . "</small>" . ($fitur_rekomendasi_siap ? "<br><small style='color:#ad426e;'>" . mwk_h($p['jenis_produk'] ?? 'Jenis belum diisi') . " · Finish: " . mwk_h($p['finish'] ?? 'Belum diisi') . " · Kulit: " . mwk_h($p['rekomendasi_kulit'] ?? 'Belum diisi') . "</small>" : "") . "</td>
                             <td>Rp ".number_format($p['harga'],0,',','.')."</td>
                             <td>{$badgeStok}</td>
                             <td>
@@ -359,5 +604,23 @@ if(isset($_GET['action']) && $_GET['action'] == 'edit') {
             </div>
         </div>
     </div>
+<script>
+(function () {
+    var checks = Array.prototype.slice.call(document.querySelectorAll('.skin-check'));
+    if (!checks.length) return;
+    var semua = checks.find(function (c) { return c.value === 'Semua jenis kulit'; });
+    function aturKulit() {
+        if (!semua) return;
+        checks.forEach(function (c) {
+            if (c !== semua) {
+                c.disabled = semua.checked;
+                if (semua.checked) c.checked = false;
+            }
+        });
+    }
+    checks.forEach(function (c) { c.addEventListener('change', aturKulit); });
+    aturKulit();
+})();
+</script>
 </body>
 </html>

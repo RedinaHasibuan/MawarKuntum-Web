@@ -31,6 +31,7 @@ const ES_KUNCI_DINAMIS = [
     'REKOMENDASI_RESTOCK'     => ['Rekomendasi restock (DSS)',                 'Manajer'],
     'BIAYA_RESTOCK'           => ['Estimasi biaya restock belum diputuskan (DSS)', 'Manajer'],
     'DAFTAR_SUPPLIER'         => ['Daftar supplier aktif (DSS)',               'Manajer'],
+    'REKOMENDASI_PRODUK_KULIT'=> ['Rekomendasi produk berdasarkan jenis kulit (TPS)', 'Pelanggan'],
 ];
 
 // Kata yang terlalu umum untuk dijadikan nama produk atau kata kunci
@@ -327,18 +328,234 @@ function es_jawab_dinamis($es, array $p, $peran, array $kata, $user_id) {
     return 'Jawaban untuk pertanyaan ini belum bisa ditampilkan.';
 }
 
+
+/** Deteksi apakah pengguna sedang meminta rekomendasi produk. */
+function es_intent_rekomendasi_produk($teks) {
+    $t = (string) $teks;
+    if (preg_match('/\b(rekomendasi|rekomend|saran|sarankan|cocok|beli|membeli|dibeli|pilih)\b/ui', $t)) {
+        return true;
+    }
+    // Variasi bahasa alami: "aku butuh cushion" atau "carikan produk untuk kulit berminyak".
+    $adaKeinginan = preg_match('/\b(butuh|cari|carikan|mencari|ingin|mau)\b/ui', $t);
+    $adaKonteksProduk = preg_match('/\b(produk|makeup|kosmetik|skincare|cushion|setting\s+spray|foundation|concealer|bedak|primer|blush|highlighter|lipstick|lipstik|lip\s+tint|mascara|maskara|eyeshadow|eyeliner|sunscreen|serum|moisturizer|toner)\b/ui', $t);
+    $adaJenisKulit = preg_match('/\b(normal|berminyak|minyak|oily|kering|dry|kombinasi|combination)\b/ui', $t);
+    return (bool) (($adaKeinginan && $adaKonteksProduk) || ($adaKonteksProduk && $adaJenisKulit));
+}
+
+/** Ambil jenis kulit yang disebut pengguna. Mengembalikan label yang dipakai tabel atribut produk. */
+function es_deteksi_jenis_kulit_rekomendasi($teks) {
+    $t = mb_strtolower((string) $teks, 'UTF-8');
+    if (preg_match('/\b(kombinasi|combination|combination skin)\b/u', $t)) return 'Kombinasi';
+    if (preg_match('/\b(berminyak|minyak|oily)\b/u', $t)) {
+        if (preg_match('/\b(tidak|bukan|kurang)\s+(?:terlalu\s+)?(?:berminyak|minyak|oily)\b/u', $t)) return null;
+        return 'Berminyak';
+    }
+    if (preg_match('/\b(kering|dry)\b/u', $t)) return 'Kering';
+    if (preg_match('/\b(normal)\b/u', $t)) return 'Normal';
+    return null;
+}
+
+/** Deteksi finish hanya jika pelanggan memang menyebutkannya. */
+function es_deteksi_finish_rekomendasi($teks) {
+    $t = mb_strtolower((string) $teks, 'UTF-8');
+    $map = [
+        'Matte' => ['matte', 'mat'],
+        'Dewy' => ['dewy', 'lembap bercahaya'],
+        'Satin' => ['satin'],
+        'Natural' => ['natural finish', 'finish natural', 'hasil natural', 'tampilan natural', 'natural look', 'look natural'],
+        'Glowy' => ['glowy finish', 'finish glowy', 'glowing finish', 'finish glowing', 'tampilan glowing', 'look glowing'],
+    ];
+    foreach ($map as $label => $kata) {
+        foreach ($kata as $k) {
+            if (preg_match('/\b' . preg_quote($k, '/') . '\b/u', $t)) return $label;
+        }
+    }
+    return null;
+}
+
+/** Deteksi jenis produk opsional, misalnya cushion atau setting spray. */
+function es_deteksi_jenis_produk_rekomendasi($teks) {
+    $t = mb_strtolower((string) $teks, 'UTF-8');
+    $map = [
+        'Setting Spray' => ['setting spray'],
+        'Cushion' => ['cushion'],
+        'Foundation' => ['foundation'],
+        'Concealer' => ['concealer'],
+        'Bedak' => ['bedak', 'powder'],
+        'Primer' => ['primer'],
+        'Blush On' => ['blush on', 'blush'],
+        'Highlighter' => ['highlighter'],
+        'Contour' => ['contour', 'kontur'],
+        'Lip Tint' => ['lip tint', 'liptint'],
+        'Lipstick' => ['lipstick', 'lipstik'],
+        'Lip Gloss' => ['lip gloss'],
+        'Mascara' => ['mascara', 'maskara'],
+        'Eyeshadow Palette' => ['eyeshadow', 'eye shadow'],
+        'Pensil Alis' => ['pensil alis', 'eyebrow'],
+        'Eyeliner' => ['eyeliner'],
+        'Micellar Water' => ['micellar water', 'micellar'],
+        'Facial Wash' => ['facial wash', 'sabun muka', 'facial cleanser'],
+        'Toner' => ['toner'],
+        'Serum' => ['serum'],
+        'Moisturizer' => ['moisturizer', 'pelembap'],
+        'Sunscreen' => ['sunscreen', 'sunblock', 'tabir surya'],
+    ];
+    foreach ($map as $label => $kata) {
+        foreach ($kata as $k) {
+            if (strpos($t, $k) !== false) return $label;
+        }
+    }
+    return null;
+}
+
+/** Deteksi satu karakteristik produk yang secara eksplisit diminta pelanggan. */
+function es_deteksi_tag_rekomendasi($teks) {
+    $t = mb_strtolower((string) $teks, 'UTF-8');
+    $map = [
+        'Oil Control' => ['oil control', 'mengontrol minyak', 'kontrol minyak', 'anti kilap'],
+        'Lightweight' => ['lightweight', 'ringan', 'tidak berat'],
+        'Hydrating' => ['hydrating', 'melembapkan', 'lembap', 'hidrasi'],
+        'Long Lasting' => ['long lasting', 'tahan lama', 'awet seharian'],
+        'Non-Comedogenic' => ['non-comedogenic', 'non comedogenic', 'tidak menyumbat pori'],
+        'Waterproof' => ['waterproof', 'tahan air'],
+        'Transferproof' => ['transferproof', 'anti transfer', 'tidak transfer'],
+        'Fragrance-Free' => ['fragrance-free', 'fragrance free', 'tanpa pewangi'],
+        'Coverage Ringan' => ['coverage ringan', 'light coverage'],
+        'Coverage Medium' => ['coverage medium', 'medium coverage'],
+        'Coverage Full' => ['coverage full', 'full coverage'],
+    ];
+    foreach ($map as $label => $kata) {
+        foreach ($kata as $k) {
+            if (strpos($t, $k) !== false) return $label;
+        }
+    }
+    return null;
+}
+
+/** Periksa apakah tabel atribut rekomendasi sudah diimpor. */
+function es_tabel_rekomendasi_siap($es) {
+    $wajib = ['product_recommendation_profiles', 'product_profile_skin_types', 'product_profile_tags'];
+    $ada = array_column(es_rows($es, "SELECT table_name FROM information_schema.tables WHERE table_schema = 'mawarkuntum' AND table_name IN ('product_recommendation_profiles','product_profile_skin_types','product_profile_tags')"), 'table_name');
+    return count(array_intersect($wajib, $ada)) === count($wajib);
+}
+
+/** Ambil produk yang sudah disetujui Staff Gudang untuk jenis kulit, finish, dan jenis produk tertentu. */
+function es_cari_rekomendasi_produk_kulit($es, $jenisKulit, $finish = null, $jenisProduk = null, $tag = null) {
+    if (!es_tabel_rekomendasi_siap($es)) return null;
+
+    $sql = "SELECT p.product_id, p.nama_produk, p.kategori, p.gambar, p.harga, p.stok,
+                   rp.jenis_produk, COALESCE(rp.finish, '') AS finish,
+                   COALESCE(rp.catatan_rekomendasi, '') AS catatan_rekomendasi,
+                   COALESCE(tag.tag_list, '') AS tags, COALESCE(skin.skin_list, '') AS jenis_kulit
+            FROM mawarkuntum.products p
+            JOIN mawarkuntum.product_recommendation_profiles rp ON rp.product_id = p.product_id
+            JOIN (
+                SELECT DISTINCT product_id
+                FROM mawarkuntum.product_profile_skin_types
+                WHERE jenis_kulit = ? OR jenis_kulit = 'Semua jenis kulit'
+            ) cocok ON cocok.product_id = p.product_id
+            LEFT JOIN (
+                SELECT product_id, GROUP_CONCAT(nama_tag ORDER BY nama_tag SEPARATOR ', ') AS tag_list
+                FROM mawarkuntum.product_profile_tags GROUP BY product_id
+            ) tag ON tag.product_id = p.product_id
+            LEFT JOIN (
+                SELECT product_id, GROUP_CONCAT(jenis_kulit ORDER BY jenis_kulit SEPARATOR ', ') AS skin_list
+                FROM mawarkuntum.product_profile_skin_types GROUP BY product_id
+            ) skin ON skin.product_id = p.product_id
+            WHERE rp.aktif = 1 AND p.stok > 0";
+    $tipe = 's';
+    $param = [$jenisKulit];
+    if ($finish !== null) {
+        $sql .= " AND rp.finish = ?";
+        $tipe .= 's';
+        $param[] = $finish;
+    }
+    if ($jenisProduk !== null) {
+        $sql .= " AND rp.jenis_produk = ?";
+        $tipe .= 's';
+        $param[] = $jenisProduk;
+    }
+    if ($tag !== null) {
+        $sql .= " AND EXISTS (
+            SELECT 1 FROM mawarkuntum.product_profile_tags filter_tag
+            WHERE filter_tag.product_id = p.product_id AND filter_tag.nama_tag = ?
+        )";
+        $tipe .= 's';
+        $param[] = $tag;
+    }
+    $sql .= " ORDER BY p.stok DESC, p.nama_produk ASC LIMIT 6";
+    return es_rows($es, $sql, $tipe, $param);
+}
+
+/** Bangun hasil rekomendasi untuk percakapan baru maupun pemuatan ulang riwayat. */
+function es_hasil_rekomendasi_produk($es, $teks) {
+    if (!es_intent_rekomendasi_produk($teks)) return null;
+    $jenisKulit = es_deteksi_jenis_kulit_rekomendasi($teks);
+    if (!$jenisKulit) {
+        $kb = es_rows($es, "SELECT id_pengetahuan FROM es_pengetahuan WHERE kunci_data = 'REKOMENDASI_PRODUK_KULIT' AND status = 'Aktif' ORDER BY id_pengetahuan ASC LIMIT 1");
+        return [
+            'cocok' => true,
+            'jawaban' => 'Boleh tahu jenis kulitmu apa? Aku bisa mencarikan produk yang sudah ditandai cocok untuk kulit normal, berminyak, kering, atau kombinasi. Kamu juga boleh menyebutkan finish yang kamu suka, misalnya matte, dewy, atau satin.',
+            'id_pengetahuan' => $kb ? (int) $kb[0]['id_pengetahuan'] : null,
+            'skor' => 5,
+            'topik' => 'Rekomendasi Produk',
+            'id_artikel_kms' => null,
+            'rekomendasi' => [],
+        ];
+    }
+
+    $finish = es_deteksi_finish_rekomendasi($teks);
+    $jenisProduk = es_deteksi_jenis_produk_rekomendasi($teks);
+    $tag = es_deteksi_tag_rekomendasi($teks);
+    $produk = es_cari_rekomendasi_produk_kulit($es, $jenisKulit, $finish, $jenisProduk, $tag);
+    $kb = es_rows($es, "SELECT id_pengetahuan FROM es_pengetahuan WHERE kunci_data = 'REKOMENDASI_PRODUK_KULIT' AND status = 'Aktif' ORDER BY id_pengetahuan ASC LIMIT 1");
+    $idPengetahuan = $kb ? (int) $kb[0]['id_pengetahuan'] : null;
+
+    if ($produk === null) {
+        $jawaban = 'Fitur rekomendasi produk belum diaktifkan pada database katalog. Silakan minta administrator menjalankan file migrasi produk rekomendasi terlebih dahulu.';
+    } elseif (!$produk) {
+        $filter = ' untuk kulit ' . $jenisKulit;
+        if ($jenisProduk) $filter .= ' pada jenis produk ' . $jenisProduk;
+        if ($finish) $filter .= ' dengan finish ' . $finish;
+        if ($tag) $filter .= ' dengan karakteristik ' . $tag;
+        $jawaban = 'Aku belum menemukan produk yang sudah ditandai cocok' . $filter . '. Staff Gudang perlu melengkapi kecocokan jenis kulit dan atribut produk pada data katalog terlebih dahulu. Aku tidak akan menyarankan produk yang belum memiliki data kecocokan.';
+    } else {
+        $filter = 'kulit ' . $jenisKulit;
+        if ($jenisProduk) $filter .= ', jenis produk ' . $jenisProduk;
+        if ($finish) $filter .= ', finish ' . $finish;
+        if ($tag) $filter .= ', karakteristik ' . $tag;
+        $jawaban = 'Berikut produk Mawarkuntum yang sudah ditandai cocok untuk ' . $filter . ' dan stoknya tersedia. Pilih produk sesuai kebutuhanmu, ya.';
+    }
+
+    return [
+        'cocok' => true,
+        'jawaban' => $jawaban,
+        'id_pengetahuan' => $idPengetahuan,
+        'skor' => 10,
+        'topik' => 'Rekomendasi Produk',
+        'id_artikel_kms' => null,
+        'rekomendasi' => is_array($produk) ? $produk : [],
+    ];
+}
+
 /**
  * Proses satu pertanyaan.
  * Hasil: cocok (bool), jawaban (teks), id_pengetahuan, skor, topik, id_artikel_kms
  */
 function es_proses($es, $peran, $user_id, $teks) {
+    // Jalur khusus rekomendasi: mengambil data aktual dari katalog, bukan jawaban statis.
+    if ($peran === 'Pelanggan') {
+        $hasilRekomendasi = es_hasil_rekomendasi_produk($es, $teks);
+        if ($hasilRekomendasi !== null) return $hasilRekomendasi;
+    }
+
     $sin  = es_muat_sinonim($es);
     $kata = es_kata($teks, $sin);
     $p    = es_cocokkan($es, $peran, $kata);
 
     if (!$p) {
         return ['cocok' => false, 'jawaban' => ES_JAWABAN_CADANGAN, 'id_pengetahuan' => null,
-                'skor' => 0, 'topik' => null, 'id_artikel_kms' => null];
+                'skor' => 0, 'topik' => null, 'id_artikel_kms' => null, 'rekomendasi' => []];
     }
     $jawaban = ($p['jenis_jawaban'] === 'Dinamis')
         ? es_jawab_dinamis($es, $p, $peran, $kata, $user_id)
@@ -346,7 +563,8 @@ function es_proses($es, $peran, $user_id, $teks) {
 
     return ['cocok' => true, 'jawaban' => $jawaban, 'id_pengetahuan' => (int) $p['id_pengetahuan'],
             'skor' => (float) $p['skor'], 'topik' => $p['nama_topik'],
-            'id_artikel_kms' => $p['id_artikel_kms'] !== null ? (int) $p['id_artikel_kms'] : null];
+            'id_artikel_kms' => $p['id_artikel_kms'] !== null ? (int) $p['id_artikel_kms'] : null,
+            'rekomendasi' => []];
 }
 
 /**

@@ -1,25 +1,68 @@
 
-# File konfigurasi lokal yang berisi kredensial
+# ==========================================
+# MAWARKUNTUM WEB - GITIGNORE
+# ==========================================
+
+# 1. Environment dan konfigurasi rahasia
 .env
 .env.*
+!.env.example
+
+# Konfigurasi lokal (jangan upload jika berisi password)
 config.local.php
 config_es.local.php
 koneksi.local.php
 
-# Database dump yang berisi data pribadi
-mawarkuntum.sql
-mawarkuntum_es.sql
-mawarkuntum_dss.sql
-mawarkuntum_kms.sql
+# Jika file konfigurasi berikut berisi kredensial asli,
+# aktifkan aturan yang sesuai dengan nama file project:
+# config.php
+# config_es.php
+# koneksi.php
 
-# File database MySQL fisik
+# 2. Database dump pribadi
+# Abaikan semua SQL, kecuali file migrasi resmi
+*.sql
+
+# Tetap izinkan folder migrasi rekomendasi
+!database/
+!database/migrations/
+!database/migrations/*.sql
+
+# 3. File fisik MySQL / MariaDB
 *.ibd
 *.frm
+*.MYD
+*.MYI
 ibdata*
+ib_logfile*
+aria_log*
 
-# Log
+# 4. File log dan cache
 *.log
+/logs/
+/cache/
+/tmp/
 
-# File sistem
+# 5. File sementara
+*.tmp
+*.temp
+*.bak
+*.old
+
+# 6. Dependency dan hasil instalasi
+/node_modules/
+/vendor/
+
+# 7. File sistem operasi
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# 8. Backup database
+/database/backups/
+
+# Konfigurasi database lokal
+/config.php
+/config_dss.php
+/config_es.php
+/koneksi.php

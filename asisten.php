@@ -86,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'cocok'    => $hasil['cocok'],
             'topik'    => $hasil['topik'],
             'artikel'  => $hasil['id_artikel_kms'] ? 'detail.php?id=' . $hasil['id_artikel_kms'] : null,
+            'rekomendasi' => $hasil['rekomendasi'] ?? [],
         ]);
         exit();
     }
@@ -134,6 +135,15 @@ if ($siap) {
                                  LEFT JOIN es_umpan_balik u ON u.id_pesan = m.id_pesan
                                  WHERE m.id_percakapan = ? AND c.user_id = ? AND c.selesai_at IS NULL
                                  ORDER BY m.id_pesan", 'ii', [$id, $user_id]);
+        foreach ($riwayat as &$itemRiwayat) {
+            if ($peran === 'Pelanggan') {
+                $hasilLama = es_hasil_rekomendasi_produk($es, $itemRiwayat['pertanyaan']);
+                $itemRiwayat['rekomendasi'] = $hasilLama['rekomendasi'] ?? [];
+            } else {
+                $itemRiwayat['rekomendasi'] = [];
+            }
+        }
+        unset($itemRiwayat);
     }
     $contoh = array_column(es_rows($es, "SELECT p.contoh_pertanyaan FROM es_pengetahuan p
                                          JOIN es_topik t ON t.id_topik = p.id_topik
@@ -237,6 +247,19 @@ $js_opsi = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UN
         .menilai button:hover, .menilai button.dipilih { background: var(--pink-soft); border-color: #efa9c5; }
         .menilai a { color: var(--pink); font-weight: bold; text-decoration: none; margin-left: 6px; }
         .mengetik { color: #a99ba3; font-style: italic; }
+        .baris.bot.punya-rekomendasi { width: 98%; max-width: 98%; }
+        .rekomendasi-label { margin: 10px 0 7px 2px; color: #866477; font-size: 10px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase; }
+        .rekomendasi-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; }
+        .produk-rekomendasi { min-width: 0; display: flex; gap: 10px; padding: 10px; border: 1px solid #f0dce5; border-radius: 14px; background: linear-gradient(145deg,#fff 0%,#fff8fb 100%); box-shadow: 0 4px 13px rgba(112,72,92,.06); }
+        .produk-rekomendasi img { width: 76px; height: 82px; flex: 0 0 76px; object-fit: cover; border-radius: 10px; background: #f8edf2; }
+        .produk-rekomendasi .pr-body { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
+        .produk-rekomendasi .pr-name { color: #493b44; font-size: 11px; line-height: 1.4; font-weight: 800; }
+        .produk-rekomendasi .pr-meta { color: #897c85; font-size: 10px; margin-top: 3px; line-height: 1.4; }
+        .produk-rekomendasi .pr-price { color: #c52e70; font-size: 12px; font-weight: 800; margin-top: 5px; }
+        .produk-rekomendasi .pr-stock { color: #598363; font-size: 9px; margin-top: 2px; }
+        .produk-rekomendasi .pr-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+        .produk-rekomendasi .pr-tags span { display: inline-block; background: #fbeaf1; color: #9e456b; border-radius: 9px; padding: 3px 6px; font-size: 9px; }
+        .produk-rekomendasi .pr-link { display: inline-block; margin-top: auto; padding-top: 7px; color: #fff; background: #c83d7b; border-radius: 8px; text-decoration: none; font-size: 9px; font-weight: 800; padding: 6px 8px; }
         .contoh { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; padding: 13px 17px 10px; background: #fff; border-top: 1px solid #f3e6eb; }
         .contoh button { background: #fff4f8; color: #b52e69; border: 1px solid #f2d3e0; border-radius: 20px; padding: 7px 12px; font-size: 11px; cursor: pointer; font-family: inherit; transition: all .15s ease; }
         .contoh button:hover { background: #f9dce8; border-color: #e9a9c3; transform: translateY(-1px); }
@@ -274,6 +297,8 @@ $js_opsi = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UN
             .stiker.dua { right: -28px; top: 42%; }
             .stiker.tiga, .stiker.empat { display: none; }
             .contoh { padding: 11px 12px 8px; }
+            .rekomendasi-grid { grid-template-columns: 1fr; }
+            .produk-rekomendasi img { width: 68px; height: 76px; flex-basis: 68px; }
             form.kirim { padding: 10px 12px 13px; }
             form.kirim button { min-width: 76px; padding: 0 15px; }
         }
@@ -388,6 +413,76 @@ $js_opsi = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UN
         return {baris: baris, kolom: kolom, gelembung: g};
     }
 
+    function tambahKartuRekomendasi(kolom, daftarProduk) {
+        if (!Array.isArray(daftarProduk) || daftarProduk.length === 0) return;
+        var label = document.createElement('div');
+        label.className = 'rekomendasi-label';
+        label.textContent = 'Produk yang bisa kamu pertimbangkan';
+        kolom.appendChild(label);
+
+        var grid = document.createElement('div');
+        grid.className = 'rekomendasi-grid';
+        daftarProduk.forEach(function (p) {
+            var card = document.createElement('article');
+            card.className = 'produk-rekomendasi';
+
+            var img = document.createElement('img');
+            img.alt = p.nama_produk || 'Produk Mawarkuntum';
+            img.loading = 'lazy';
+            if (p.gambar) img.src = p.gambar;
+            img.onerror = function () { img.style.display = 'none'; };
+            card.appendChild(img);
+
+            var body = document.createElement('div');
+            body.className = 'pr-body';
+            var name = document.createElement('div');
+            name.className = 'pr-name';
+            name.textContent = p.nama_produk || 'Produk Mawarkuntum';
+            body.appendChild(name);
+
+            var meta = document.createElement('div');
+            meta.className = 'pr-meta';
+            meta.textContent = (p.jenis_produk || p.kategori || 'Produk') + (p.finish ? ' • Finish ' + p.finish : '');
+            body.appendChild(meta);
+
+            var price = document.createElement('div');
+            price.className = 'pr-price';
+            var nominal = Number(p.harga || 0);
+            price.textContent = 'Rp ' + nominal.toLocaleString('id-ID', {maximumFractionDigits: 0});
+            body.appendChild(price);
+
+            var stock = document.createElement('div');
+            stock.className = 'pr-stock';
+            stock.textContent = 'Stok tersedia: ' + Number(p.stok || 0) + ' pcs';
+            body.appendChild(stock);
+
+            var tags = document.createElement('div');
+            tags.className = 'pr-tags';
+            var daftarTag = [];
+            if (p.jenis_kulit) daftarTag.push('Kulit: ' + p.jenis_kulit);
+            if (p.finish) daftarTag.push('Finish: ' + p.finish);
+            if (p.tags) p.tags.split(',').forEach(function (t) { if (t.trim()) daftarTag.push(t.trim()); });
+            daftarTag.slice(0, 3).forEach(function (t) {
+                var chip = document.createElement('span');
+                chip.textContent = t;
+                tags.appendChild(chip);
+            });
+            if (daftarTag.length) body.appendChild(tags);
+
+            var link = document.createElement('a');
+            link.className = 'pr-link';
+            link.href = 'katalog.php#produk-' + encodeURIComponent(p.product_id);
+            link.textContent = 'Lihat di katalog →';
+            body.appendChild(link);
+
+            card.appendChild(body);
+            grid.appendChild(card);
+        });
+        kolom.appendChild(grid);
+        var parentRow = kolom.parentElement;
+        if (parentRow) parentRow.classList.add('punya-rekomendasi');
+    }
+
     function tambahPenilaian(kolom, idPesan, nilaiAwal, tautan) {
         var w = document.createElement('div');
         w.className = 'menilai';
@@ -425,6 +520,7 @@ $js_opsi = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UN
         RIWAYAT.forEach(function (r) {
             buatBaris('user', r.pertanyaan);
             var b = buatBaris('bot', r.jawaban);
+            tambahKartuRekomendasi(b.kolom, r.rekomendasi || []);
             tambahPenilaian(b.kolom, r.id_pesan, r.is_helpful, null);
         });
         if (RIWAYAT.length && kotakContoh) { kotakContoh.style.display = 'none'; }
@@ -447,6 +543,7 @@ $js_opsi = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UN
                 chat.removeChild(mengetik.baris);
                 if (!j.ok) { buatBaris('bot', j.pesan || 'Terjadi kesalahan.', 'galat'); return; }
                 var b = buatBaris('bot', j.jawaban, j.cocok ? '' : 'tidak-cocok');
+                tambahKartuRekomendasi(b.kolom, j.rekomendasi || []);
                 if (j.id_pesan) { tambahPenilaian(b.kolom, j.id_pesan, null, j.artikel); }
             })
             .catch(function () {

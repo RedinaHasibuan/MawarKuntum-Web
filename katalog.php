@@ -72,6 +72,8 @@ if(isset($_POST['add_to_cart'])) {
         .produk-img { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; }
         .produk-nama { font-size: 16px; color: #2e7d32; height: 40px; margin: 0 0 10px; }
         .produk-harga { font-size: 18px; color: #d81b60; font-weight: bold; margin-bottom: 10px; }
+        .produk-atribut { display:flex; justify-content:center; flex-wrap:wrap; gap:5px; margin:0 0 10px; }
+        .produk-atribut span { background:#fff0f6; color:#a33e68; border:1px solid #f4d6e3; border-radius:12px; padding:4px 7px; font-size:10px; }
         .stok-info { font-size: 12px; margin-bottom: 12px; color: #666; }
         .stok-habis { color: #e53935; font-weight: bold; background: #ffebee; padding: 6px; border-radius: 6px; margin-bottom: 10px; font-size: 13px; }
 
@@ -103,18 +105,41 @@ if(isset($_POST['add_to_cart'])) {
 
     <div class="katalog-grid">
         <?php
-        $query = mysqli_query($conn, "SELECT * FROM products");
-        while($row = mysqli_fetch_assoc($query)) {
+        $tablesRecommendationReady = true;
+        foreach (['product_recommendation_profiles', 'product_profile_skin_types'] as $tableRecommendation) {
+            $tableSafe = mysqli_real_escape_string($conn, $tableRecommendation);
+            $checkRecommendation = mysqli_query($conn, "SHOW TABLES LIKE '{$tableSafe}'");
+            if (!$checkRecommendation || mysqli_num_rows($checkRecommendation) === 0) {
+                $tablesRecommendationReady = false;
+                break;
+            }
+        }
+        if ($tablesRecommendationReady) {
+            $query = mysqli_query($conn, "SELECT p.*,
+                rp.jenis_produk, rp.finish,
+                (SELECT GROUP_CONCAT(s.jenis_kulit SEPARATOR ', ') FROM product_profile_skin_types s WHERE s.product_id = p.product_id) AS rekomendasi_kulit
+                FROM products p LEFT JOIN product_recommendation_profiles rp ON rp.product_id = p.product_id
+                ORDER BY p.product_id DESC");
+        } else {
+            $query = mysqli_query($conn, "SELECT * FROM products ORDER BY product_id DESC");
+        }
+        while($query && $row = mysqli_fetch_assoc($query)) {
             $img_src = (strpos($row['gambar'], 'http') === 0) ? $row['gambar'] : 'images/' . $row['gambar'];
             $stok = intval($row['stok']);
             $is_empty = ($stok <= 0);
             ?>
 
-            <div class='produk-card'>
+            <div class='produk-card' id='produk-<?php echo (int) $row['product_id']; ?>'>
                 <div>
                     <img src='<?php echo $img_src; ?>' alt='<?php echo htmlspecialchars($row['nama_produk']); ?>' class='produk-img' referrerpolicy='no-referrer'>
                     <h3 class='produk-nama'><?php echo htmlspecialchars($row['nama_produk']); ?></h3>
                     <div class='produk-harga'>Rp <?php echo number_format($row['harga'], 0, ',', '.'); ?></div>
+                    <?php if ($tablesRecommendationReady && (!empty($row['finish']) || !empty($row['rekomendasi_kulit']))): ?>
+                        <div class='produk-atribut'>
+                            <?php if (!empty($row['finish'])): ?><span>Finish: <?php echo htmlspecialchars($row['finish']); ?></span><?php endif; ?>
+                            <?php if (!empty($row['rekomendasi_kulit'])): ?><span>Kulit: <?php echo htmlspecialchars($row['rekomendasi_kulit']); ?></span><?php endif; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <div>
