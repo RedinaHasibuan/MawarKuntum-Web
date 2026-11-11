@@ -75,6 +75,7 @@ if (!function_exists('badge_status')) {
         .filters { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
         .filters input, .filters select { margin: 0; width: auto; flex: 1; }
     </style>
+    <link rel="stylesheet" href="assets/mawarkuntum-ui.css">
 </head>
 <body>
 

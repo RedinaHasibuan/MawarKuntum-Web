@@ -51,6 +51,7 @@ $total_transaksi = mysqli_num_rows($orders);
             .container { box-shadow: none; max-width: 100%; }
         }
     </style>
+    <link rel="stylesheet" href="assets/mawarkuntum-ui.css">
 </head>
 <body>
     <div class="container">

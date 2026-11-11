@@ -28,36 +28,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daftar Akun - Mawarkuntum</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #e8f5e9; color: #2e7d32; text-align: center; padding-top: 80px; }
-        .reg-box { background: white; width: 320px; margin: auto; padding: 30px; border-radius: 15px; box-shadow: 0 8px 16px rgba(129, 199, 132, 0.2); border: 2px solid #f8bbd0; }
-        h2 { color: #d81b60; margin-bottom: 5px; }
-        p { color: #66bb6a; font-weight: bold; margin-top: 0; font-size: 14px; }
-        input { width: 90%; padding: 10px; margin: 8px 0; border: 1px solid #c8e6c9; border-radius: 5px; background-color: #fbfcfa; box-sizing: border-box; }
-        button { background-color: #f48fb1; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 90%; margin-top: 10px; }
-        button:hover { background-color: #f06292; }
-        .alert-error { background-color: #ffebee; color: #c62828; padding: 10px; border-radius: 5px; border: 1px solid #ffcdd2; font-size: 13px; margin-bottom: 12px; }
-        .alert-success { background-color: #e8f5e9; color: #2e7d32; padding: 10px; border-radius: 5px; border: 1px solid #a5d6a7; font-size: 13px; margin-bottom: 12px; }
-        .link-login { margin-top: 15px; display: block; color: #880e4f; font-size: 13px; text-decoration: none; }
-    </style>
+    <link rel="stylesheet" href="assets/mawarkuntum-ui.css">
 </head>
-<body>
-    <div class="reg-box">
-        <h2>🌸 Mawarkuntum 🌸</h2>
-        <p>Buat Akun Pelanggan Baru</p>
+<body class="auth-page">
+    <main class="auth-shell">
+        <a class="auth-brand" href="login.php" aria-label="Mawarkuntum beranda">
+            <span class="auth-brand-mark">🌸</span><span>Mawarkuntum</span>
+        </a>
+        <div class="auth-layout">
+            <section class="auth-story">
+                <div>
+                    <div class="auth-kicker">YOUR BEAUTY JOURNEY STARTS HERE</div>
+                    <h1>Ruang kecil untuk merayakan dirimu.</h1>
+                    <p>Buat akun Mawarkuntum agar kamu bisa menjelajahi katalog, menyimpan keranjang, memantau pesanan, dan bertanya kepada Asisten Virtual.</p>
+                </div>
+                <div class="auth-points">
+                    <div class="auth-point"><span>🌷</span> Jelajahi katalog pilihan</div>
+                    <div class="auth-point"><span>💬</span> Tanya Asisten Virtual</div>
+                    <div class="auth-point"><span>🛍️</span> Belanja lebih praktis</div>
+                    <div class="auth-point"><span>✨</span> Temukan produk favorit</div>
+                </div>
+                <div class="auth-decoration" aria-hidden="true"><span>🧴</span><span>💋</span><span>🌸</span></div>
+            </section>
+            <section class="auth-panel">
+                <div class="auth-symbol">💗</div>
+                <div class="auth-eyebrow">MEMBER MAWARKUNTUM</div>
+                <h2>Buat akun baru</h2>
+                <p class="auth-subtitle">Daftar sebagai pelanggan dan mulai temukan beauty essentials favoritmu.</p>
 
-        <?php echo $pesan; ?>
+                <?php if (!empty($pesan)): ?>
+                    <div class="auth-alert" role="status"><?php echo $pesan; ?></div>
+                <?php endif; ?>
 
-        <form action="" method="POST">
-            <input type="email" name="email" placeholder="Masukkan Email Anda" required>
-            <input type="password" name="password" placeholder="Buat Password" required>
-            <button type="submit">Daftar Sekarang</button>
-        </form>
-
-        <a href="login.php" class="link-login">Sudah punya akun? Login di sini</a>
-    </div>
+                <form action="" method="POST" class="auth-form" autocomplete="on">
+                    <div class="auth-field">
+                        <label for="email">Alamat email</label>
+                        <input id="email" type="email" name="email" placeholder="nama@email.com" autocomplete="email" required>
+                    </div>
+                    <div class="auth-field">
+                        <label for="password">Buat password</label>
+                        <input id="password" type="password" name="password" placeholder="Buat password" autocomplete="new-password" required>
+                    </div>
+                    <button type="submit" class="auth-submit">Buat Akun <span aria-hidden="true">→</span></button>
+                </form>
+                <div class="auth-switch">Sudah memiliki akun? <a href="login.php">Masuk di sini</a></div>
+            </section>
+        </div>
+        <div class="auth-footnote">🌸 Dengan bergabung, kamu menjadi bagian dari komunitas Mawarkuntum.</div>
+    </main>
 </body>
 </html>

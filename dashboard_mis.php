@@ -496,6 +496,7 @@ while ($r && $a = mysqli_fetch_assoc($r)) $artikel[] = $a;
             .grid { grid-template-columns: 1fr; }
         }
     </style>
+    <link rel="stylesheet" href="assets/mawarkuntum-ui.css">
 </head>
 <body>
 

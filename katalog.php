@@ -90,20 +90,36 @@ if(isset($_POST['add_to_cart'])) {
         .cart-float { position: fixed; bottom: 30px; right: 30px; background-color: #66bb6a; color: white; padding: 15px 25px; border-radius: 30px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 100; display: flex; align-items: center; gap: 10px; }
         .cart-float:hover { background-color: #4caf50; }
     </style>
+    <link rel="stylesheet" href="assets/mawarkuntum-ui.css">
 </head>
-<body>
-
-    <div class="nav-header">
-        <h2>🌸 Katalog Mawarkuntum 🌸</h2>
-        <div class="user-info">
-            <span>Halo, <b><?php echo htmlspecialchars($_SESSION['email']); ?></b></span>
-            <a href="asisten.php" class="btn-orders" style="background:#7b1fa2;">💬 Tanya Asisten</a>
+<body class="catalog-page">
+<div class="catalog-shell">
+    <header class="catalog-topbar">
+        <a class="catalog-brand" href="katalog.php"><span class="mark">🌸</span><span>Mawarkuntum</span></a>
+        <div class="catalog-user-actions">
+            <span class="welcome">Halo, <b><?php echo htmlspecialchars($_SESSION['email']); ?></b></span>
+            <a href="asisten.php" class="btn-orders assistant-link">💬 Tanya Asisten</a>
             <a href="riwayat_pesanan.php" class="btn-orders">📦 Pesanan Saya</a>
-            <a href="logout.php" class="btn-logout">Logout</a>
+            <a href="logout.php" class="btn-logout">Keluar ↗</a>
         </div>
-    </div>
+    </header>
 
-    <div class="katalog-grid">
+    <section class="catalog-hero">
+        <div class="catalog-hero-copy">
+            <div class="eyebrow">BEAUTY CARE • EVERYDAY</div>
+            <h1>Temukan yang membuatmu merasa istimewa.</h1>
+            <p>Jelajahi koleksi beauty essentials Mawarkuntum. Butuh bantuan memilih? Asisten Virtual siap membantu menemukan produk sesuai kebutuhanmu.</p>
+            <div class="catalog-hero-pills"><span>🌷 Pilihan beauty essentials</span><span>💗 Rekomendasi personal</span><span>🌿 Belanja dengan nyaman</span></div>
+        </div>
+        <div class="catalog-hero-art" aria-hidden="true"><span>💄</span><span>🪞</span><span>🧴</span></div>
+    </section>
+
+    <section class="catalog-tools" aria-label="Cari produk">
+        <div><h2>Koleksi Mawarkuntum</h2><p>Pilih produk yang sesuai dengan gaya dan kebutuhanmu.</p></div>
+        <label class="catalog-search"><input type="search" id="productSearch" placeholder="Cari nama atau kategori produk..." aria-label="Cari nama atau kategori produk"></label>
+    </section>
+
+    <div class="katalog-grid" id="katalogGrid">
         <?php
         $tablesRecommendationReady = true;
         foreach (['product_recommendation_profiles', 'product_profile_skin_types'] as $tableRecommendation) {
@@ -129,9 +145,10 @@ if(isset($_POST['add_to_cart'])) {
             $is_empty = ($stok <= 0);
             ?>
 
-            <div class='produk-card' id='produk-<?php echo (int) $row['product_id']; ?>'>
+            <div class='produk-card' id='produk-<?php echo (int) $row['product_id']; ?>' data-name='<?php echo htmlspecialchars($row['nama_produk'], ENT_QUOTES, 'UTF-8'); ?>' data-category='<?php echo htmlspecialchars($row['kategori'], ENT_QUOTES, 'UTF-8'); ?>'>
                 <div>
                     <img src='<?php echo $img_src; ?>' alt='<?php echo htmlspecialchars($row['nama_produk']); ?>' class='produk-img' referrerpolicy='no-referrer'>
+                    <div class='produk-kategori'><?php echo htmlspecialchars($row['kategori']); ?></div>
                     <h3 class='produk-nama'><?php echo htmlspecialchars($row['nama_produk']); ?></h3>
                     <div class='produk-harga'>Rp <?php echo number_format($row['harga'], 0, ',', '.'); ?></div>
                     <?php if ($tablesRecommendationReady && (!empty($row['finish']) || !empty($row['rekomendasi_kulit']))): ?>
@@ -167,12 +184,14 @@ if(isset($_POST['add_to_cart'])) {
             <?php
         }
         ?>
+        <div class='catalog-empty' id='catalogEmpty' hidden>Produk tidak ditemukan. Coba kata kunci lain, ya.</div>
     </div>
 
     <?php $jumlah_item = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0; ?>
     <a href="keranjang.php" class="cart-float" id="cartBadge" style="<?php echo ($jumlah_item > 0) ? 'display:flex;' : 'display:none;'; ?>">
         🛍️ Checkout (<span id="cartCount"><?php echo $jumlah_item; ?></span> items) ➔
     </a>
+</div>
 
     <script>
         function tambahQty(btn) {
@@ -218,6 +237,24 @@ if(isset($_POST['add_to_cart'])) {
                 }
             })
             .catch(error => console.error('Error:', error));
+        }
+
+        // Pencarian katalog di sisi browser; tidak mengubah data/kueri database.
+        const productSearch = document.getElementById('productSearch');
+        const catalogCards = Array.from(document.querySelectorAll('.produk-card'));
+        const catalogEmpty = document.getElementById('catalogEmpty');
+        if (productSearch) {
+            productSearch.addEventListener('input', function () {
+                const keyword = this.value.trim().toLocaleLowerCase('id');
+                let visible = 0;
+                catalogCards.forEach(function (card) {
+                    const text = ((card.dataset.name || '') + ' ' + (card.dataset.category || '')).toLocaleLowerCase('id');
+                    const match = text.includes(keyword);
+                    card.hidden = !match;
+                    if (match) visible++;
+                });
+                if (catalogEmpty) catalogEmpty.hidden = visible !== 0;
+            });
         }
     </script>
 </body>

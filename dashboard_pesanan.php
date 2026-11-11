@@ -96,6 +96,7 @@ if (isset($_POST['update_order_status'])) {
         .btn-sub:hover { background: #880e4f; }
         select { padding: 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px; }
     </style>
+    <link rel="stylesheet" href="assets/mawarkuntum-ui.css">
 </head>
 <body>
 

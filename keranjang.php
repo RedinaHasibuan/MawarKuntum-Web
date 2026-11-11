@@ -85,6 +85,7 @@ if (!empty($_SESSION['cart'])) {
         .btn-submit:hover { background-color: #4caf50; }
         .btn-back { display: inline-block; margin-bottom: 15px; color: #d81b60; text-decoration: none; font-weight: bold; }
     </style>
+    <link rel="stylesheet" href="assets/mawarkuntum-ui.css">
 </head>
 <body>
 

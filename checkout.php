@@ -55,7 +55,8 @@ if(!empty($stok_errors)) {
             .btn-kembali { display: inline-block; padding: 12px 20px; background: #ef5350; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; transition: 0.2s; }
             .btn-kembali:hover { background: #e53935; }
         </style>
-    </head>
+        <link rel="stylesheet" href="assets/mawarkuntum-ui.css">
+</head>
     <body>
         <div class="error-card">
             <h2>⚠️ Pesanan Gagal Diproses</h2>

@@ -371,6 +371,7 @@ function es_form_pengetahuan($mode, array $topik, $data = []) {
         @media (max-width: 900px) { body { padding: 12px; } .stats-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 520px) { .stats-grid { grid-template-columns: 1fr; } }
     </style>
+    <link rel="stylesheet" href="assets/mawarkuntum-ui.css">
 </head>
 <body>
 

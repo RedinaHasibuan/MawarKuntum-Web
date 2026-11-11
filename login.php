@@ -56,38 +56,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {$email = mysqli_real_escape_string($
 }
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>Login OAS Mawarkuntum</title>
-    <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #e8f5e9; color: #2e7d32; text-align: center; padding-top: 80px; }
-        .login-box { background: white; width: 320px; margin: auto; padding: 30px; border-radius: 15px; box-shadow: 0 8px 16px rgba(129, 199, 132, 0.2); border: 2px solid #f8bbd0; }
-        h2 { color: #d81b60; margin-bottom: 5px; }
-        p { color: #66bb6a; font-weight: bold; margin-top: 0; }
-        input { width: 90%; padding: 10px; margin: 8px 0; border: 1px solid #c8e6c9; border-radius: 5px; background-color: #fbfcfa; box-sizing: border-box; }
-        button { background-color: #f48fb1; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 90%; margin-top: 10px; }
-        button:hover { background-color: #f06292; }
-        .alert-error { background-color: #ffebee; color: #c62828; padding: 10px; border-radius: 5px; border: 1px solid #ffcdd2; font-size: 13px; margin-bottom: 12px; }
-        .link-reg { display: block; margin-top: 15px; color: #880e4f; font-size: 13px; text-decoration: none; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masuk - Mawarkuntum</title>
+    <link rel="stylesheet" href="assets/mawarkuntum-ui.css">
 </head>
-<body>
-    <div class="login-box">
-        <h2>🌸 Mawarkuntum 🌸</h2>
-        <p>Portal Sistem Login</p>
+<body class="auth-page">
+    <main class="auth-shell">
+        <a class="auth-brand" href="login.php" aria-label="Mawarkuntum beranda">
+            <span class="auth-brand-mark">🌸</span><span>Mawarkuntum</span>
+        </a>
+        <div class="auth-layout">
+            <section class="auth-story">
+                <div>
+                    <div class="auth-kicker">BEAUTY CARE • EVERYDAY</div>
+                    <h1>Rawat diri, dengan cara yang terasa seperti kamu.</h1>
+                    <p>Temukan produk kecantikan, rekomendasi sesuai kebutuhan kulit, dan pengalaman belanja yang lebih personal bersama Mawarkuntum.</p>
+                </div>
+                <div class="auth-points">
+                    <div class="auth-point"><span>💗</span> Pilihan beauty essentials</div>
+                    <div class="auth-point"><span>🌿</span> Rekomendasi lebih personal</div>
+                    <div class="auth-point"><span>💄</span> Temukan tampilan favoritmu</div>
+                    <div class="auth-point"><span>📦</span> Pantau pesanan dengan mudah</div>
+                </div>
+                <div class="auth-decoration" aria-hidden="true"><span>💄</span><span>🪞</span><span>🌷</span></div>
+            </section>
+            <section class="auth-panel">
+                <div class="auth-symbol">🌷</div>
+                <div class="auth-eyebrow">SELAMAT DATANG KEMBALI</div>
+                <h2>Masuk ke akunmu</h2>
+                <p class="auth-subtitle">Lanjutkan perjalanan beauty care bersama Mawarkuntum.</p>
 
-        <?php if(!empty($error)): ?>
-            <div class="alert-error"><?php echo $error; ?></div>
-        <?php endif; ?>
+                <?php if (!empty($error)): ?>
+                    <div class="auth-alert alert-error" role="alert"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
+                <?php endif; ?>
 
-        <form action="" method="POST">
-            <input type="email" name="email" placeholder="Email Pegawai / Pelanggan" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Masuk</button>
-        </form>
-
-        <a href="register.php" class="link-reg">Belum punya akun? Daftar Pelanggan</a>
-    </div>
+                <form action="" method="POST" class="auth-form" autocomplete="on">
+                    <div class="auth-field">
+                        <label for="email">Email</label>
+                        <input id="email" type="email" name="email" placeholder="nama@email.com" autocomplete="username" required>
+                    </div>
+                    <div class="auth-field">
+                        <label for="password">Password</label>
+                        <input id="password" type="password" name="password" placeholder="Masukkan password" autocomplete="current-password" required>
+                    </div>
+                    <button type="submit" class="auth-submit">Masuk ke Mawarkuntum <span aria-hidden="true">→</span></button>
+                </form>
+                <div class="auth-switch">Belum punya akun? <a href="register.php">Daftar sebagai pelanggan</a></div>
+            </section>
+        </div>
+        <div class="auth-footnote">🌸 Mawarkuntum — beauty care, made personal.</div>
+    </main>
 </body>
 </html>
- 

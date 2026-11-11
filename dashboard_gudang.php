@@ -302,6 +302,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit') {
         .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
     </style>
+    <link rel="stylesheet" href="assets/mawarkuntum-ui.css">
 </head>
 <body>
     <div class="header">
