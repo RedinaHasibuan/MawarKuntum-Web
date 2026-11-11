@@ -1,0 +1,25 @@
+
+# File konfigurasi lokal yang berisi kredensial
+.env
+.env.*
+config.local.php
+config_es.local.php
+koneksi.local.php
+
+# Database dump yang berisi data pribadi
+mawarkuntum.sql
+mawarkuntum_es.sql
+mawarkuntum_dss.sql
+mawarkuntum_kms.sql
+
+# File database MySQL fisik
+*.ibd
+*.frm
+ibdata*
+
+# Log
+*.log
+
+# File sistem
+.DS_Store
+Thumbs.db
