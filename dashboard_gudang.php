@@ -302,7 +302,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit') {
         .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
     </style>
-    <link rel="stylesheet" href="assets/mawarkuntum-ui.css">
+    <link rel="stylesheet" href="assets/mawarkuntum-ui.css?v=20261112-fix4">
 </head>
 <body>
     <div class="header">
@@ -518,7 +518,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit') {
             <!-- Kelola Stok Barang & Restock (TPS) -->
             <div class="card">
                 <h3>📦 Kelola Stok Barang & Restock (TPS)</h3>
-                <table>
+                <table class="inventory-restock-table">
                     <tr><th>Produk</th><th>Harga</th><th>Sisa Stok</th><th>Restock Cepat</th><th>Aksi</th></tr>
                     <?php
                     if ($fitur_rekomendasi_siap) {
@@ -537,10 +537,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit') {
                             <td>Rp ".number_format($p['harga'],0,',','.')."</td>
                             <td>{$badgeStok}</td>
                             <td>
-                                <form method='POST' style='display:flex; gap:4px;'>
+                                <form method='POST' class='quick-restock-form'>
                                     <input type='hidden' name='product_id' value='{$p['product_id']}'>
-                                    <input type='number' name='qty_tambah' value='10' min='1' style='width:45px; padding:3px;'>
-                                    <button type='submit' name='add_stock' class='btn-sub' style='padding:3px 6px;'>+ Tambah</button>
+                                    <input type='number' name='qty_tambah' value='10' min='1' class='quick-restock-input' aria-label='Jumlah restock'>
+                                    <button type='submit' name='add_stock' class='btn-sub quick-restock-submit'>+ Tambah</button>
                                 </form>
                             </td>
                             <td>

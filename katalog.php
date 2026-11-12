@@ -90,7 +90,7 @@ if(isset($_POST['add_to_cart'])) {
         .cart-float { position: fixed; bottom: 30px; right: 30px; background-color: #66bb6a; color: white; padding: 15px 25px; border-radius: 30px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 100; display: flex; align-items: center; gap: 10px; }
         .cart-float:hover { background-color: #4caf50; }
     </style>
-    <link rel="stylesheet" href="assets/mawarkuntum-ui.css">
+    <link rel="stylesheet" href="assets/mawarkuntum-ui.css?v=20261112-fix4">
 </head>
 <body class="catalog-page">
 <div class="catalog-shell">
@@ -116,7 +116,7 @@ if(isset($_POST['add_to_cart'])) {
 
     <section class="catalog-tools" aria-label="Cari produk">
         <div><h2>Koleksi Mawarkuntum</h2><p>Pilih produk yang sesuai dengan gaya dan kebutuhanmu.</p></div>
-        <label class="catalog-search"><input type="search" id="productSearch" placeholder="Cari nama atau kategori produk..." aria-label="Cari nama atau kategori produk"></label>
+        <label class="catalog-search"><span class="catalog-search-icon" aria-hidden="true"></span><input type="search" id="productSearch" placeholder="Cari nama atau kategori produk..." aria-label="Cari nama atau kategori produk"></label>
     </section>
 
     <div class="katalog-grid" id="katalogGrid">

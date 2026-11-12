@@ -96,7 +96,7 @@ if (isset($_POST['update_order_status'])) {
         .btn-sub:hover { background: #880e4f; }
         select { padding: 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px; }
     </style>
-    <link rel="stylesheet" href="assets/mawarkuntum-ui.css">
+    <link rel="stylesheet" href="assets/mawarkuntum-ui.css?v=20261112-fix4">
 </head>
 <body>
 
@@ -146,10 +146,10 @@ if (isset($_POST['update_order_status'])) {
                                 <td>{$t['prioritas']}</td>
                                 <td><span class='badge {$bClass}'>{$st}</span></td>
                                 <td>
-                                    <form method='POST' style='display:flex; gap:3px;'>
+                                    <form method='POST' class='status-task-form'>
                                         <input type='hidden' name='pk_col' value='{$pk_col}'>
                                         <input type='hidden' name='task_id' value='{$tid}'>
-                                        <select name='status_tugas'>
+                                        <select name='status_tugas' class='status-select'>
                                             <option value='To-Do' ".($st=='To-Do'?'selected':'').">To-Do</option>
                                             <option value='In Progress' ".($st=='In Progress'?'selected':'').">In Progress</option>
                                             <option value='Done'>Done</option>
@@ -249,9 +249,9 @@ if (isset($_POST['update_order_status'])) {
                                     <td>{$tot}</td>
                                     <td><span class='badge {$bStyle}'>{$curr_st}</span></td>
                                     <td>
-                                        <form method='POST' style='display:flex; gap:3px;'>
+                                        <form method='POST' class='status-order-form'>
                                             <input type='hidden' name='order_id' value='{$oid}'>
-                                            <select name='status_order'>
+                                            <select name='status_order' class='status-select'>
                                                 <option value='Pending' ".($curr_st=='Pending'?'selected':'').">Pending</option>
                                                 <option value='Diproses' ".($curr_st=='Diproses'?'selected':'').">Diproses</option>
                                                 <option value='Dikirim' ".($curr_st=='Dikirim'?'selected':'').">Dikirim</option>

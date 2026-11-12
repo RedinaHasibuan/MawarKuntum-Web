@@ -61,12 +61,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {$email = mysqli_real_escape_string($
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Masuk - Mawarkuntum</title>
-    <link rel="stylesheet" href="assets/mawarkuntum-ui.css">
+    <link rel="stylesheet" href="assets/mawarkuntum-ui.css?v=20261112-fix4">
 </head>
 <body class="auth-page">
     <main class="auth-shell">
-        <a class="auth-brand" href="login.php" aria-label="Mawarkuntum beranda">
-            <span class="auth-brand-mark">🌸</span><span>Mawarkuntum</span>
+        <a class="auth-brand" href="login.php" aria-label="Mawarkuntum beranda" style="text-decoration:none!important;border:0!important;">
+            <span class="auth-brand-mark" aria-hidden="true">🌸</span><span class="auth-brand-name">Mawarkuntum</span>
         </a>
         <div class="auth-layout">
             <section class="auth-story">

@@ -304,3 +304,681 @@ body:has(.sidebar) { background: var(--mk-cream); }
 .card table { min-width: 560px; }
 .header-nav a, .catalog-user-actions a { white-space: nowrap; }
 button:focus-visible, a:focus-visible { outline: 3px solid rgba(220, 103, 151, .38); outline-offset: 3px; }
+
+
+/* ==========================================================
+   MAWARKUNTUM UI FIXES - USER REVISION PDF
+   Focus: auth decoration, brand mark, quantity controls,
+   quick restock, status dropdowns, history action and search.
+   ========================================================== */
+
+/* AUTH BRAND: remove the browser's default link underline.
+   The underline previously crossed the flower emoji itself. */
+.auth-brand,
+.auth-brand:link,
+.auth-brand:visited,
+.auth-brand:hover,
+.auth-brand:active,
+.auth-brand * {
+    color: var(--mk-rose-900);
+    text-decoration: none !important;
+    text-decoration-line: none !important;
+    border-bottom: 0 !important;
+}
+.auth-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    vertical-align: middle;
+}
+.auth-brand-mark {
+    position: relative;
+    isolation: isolate;
+    flex: 0 0 42px;
+    line-height: 1;
+    text-decoration: none !important;
+}
+.auth-brand-name {
+    display: inline-block;
+    line-height: 1.2;
+    text-decoration: none !important;
+}
+
+/* AUTH STORY: reserve a dedicated strip for the makeup decoration.
+   Cards are opaque and stay above decorative elements. */
+.auth-story {
+    isolation: isolate;
+    gap: 20px;
+}
+.auth-story > div:first-child {
+    position: relative;
+    z-index: 2;
+}
+.auth-points {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 470px;
+    margin-bottom: 126px;
+}
+.auth-point {
+    position: relative;
+    z-index: 2;
+    min-width: 0;
+    min-height: 62px;
+    background: rgba(255, 253, 251, .96) !important;
+    border: 1px solid rgba(255, 255, 255, .96) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+.auth-point span {
+    position: relative;
+    z-index: 1;
+    flex: 0 0 30px;
+}
+.auth-decoration {
+    right: 24px;
+    bottom: 22px;
+    z-index: 0;
+    gap: 10px;
+    pointer-events: none;
+}
+.auth-decoration span {
+    background: rgba(255, 255, 255, .72);
+}
+
+/* BRAND links should never carry an underline through their icon. */
+.catalog-brand,
+.catalog-brand:link,
+.catalog-brand:visited,
+.catalog-brand:hover,
+.catalog-brand * {
+    text-decoration: none !important;
+    text-decoration-line: none !important;
+}
+.catalog-brand .mark {
+    line-height: 1;
+    flex: 0 0 42px;
+}
+
+/* SEARCH: use one clean CSS magnifier instead of a text glyph
+   that can collide with the browser's native search decoration. */
+.catalog-search {
+    display: block;
+    min-width: 0;
+}
+.catalog-search input[type="search"] {
+    box-sizing: border-box !important;
+    width: 100%;
+    min-width: 0;
+    padding: 10px 15px 10px 45px !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background-image: none !important;
+}
+.catalog-search input[type="search"]::-webkit-search-decoration,
+.catalog-search input[type="search"]::-webkit-search-cancel-button,
+.catalog-search input[type="search"]::-webkit-search-results-button,
+.catalog-search input[type="search"]::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+}
+.catalog-search::before {
+    content: "";
+    position: absolute;
+    z-index: 2;
+    left: 16px;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--mk-rose-500);
+    border-radius: 50%;
+    transform: translateY(-62%);
+    pointer-events: none;
+}
+.catalog-search::after {
+    content: "";
+    position: absolute;
+    z-index: 2;
+    left: 29px;
+    top: calc(50% + 4px);
+    width: 7px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--mk-rose-500);
+    transform: rotate(45deg);
+    transform-origin: left center;
+    pointer-events: none;
+}
+
+/* CATALOG QUANTITY: override global input padding so the complete
+   quantity value remains visible between the minus/plus buttons. */
+.qty-box {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto;
+    width: auto !important;
+    min-height: 42px;
+    overflow: hidden;
+    border: 1px solid #ead6df !important;
+    background: #fff !important;
+}
+.qty-box .btn-qty {
+    display: inline-flex !important;
+    flex: 0 0 36px;
+    align-items: center;
+    justify-content: center;
+    width: 36px !important;
+    min-width: 36px;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 !important;
+    line-height: 1;
+}
+.qty-box .input-qty {
+    display: block;
+    box-sizing: border-box !important;
+    flex: 0 0 54px;
+    width: 54px !important;
+    min-width: 54px !important;
+    max-width: 54px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    margin: 0 !important;
+    padding: 0 2px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    color: var(--mk-ink) !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    line-height: 42px;
+    text-align: center !important;
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+.qty-box .input-qty::-webkit-inner-spin-button,
+.qty-box .input-qty::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* WAREHOUSE: widen quick-restock number box and keep its value visible. */
+.quick-restock-form {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: 8px !important;
+    min-width: 148px;
+    margin: 0;
+}
+.quick-restock-input {
+    display: block;
+    box-sizing: border-box !important;
+    flex: 0 0 76px;
+    width: 76px !important;
+    min-width: 76px !important;
+    max-width: 76px;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 6px 24px 6px 8px !important;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+.quick-restock-input::-webkit-inner-spin-button,
+.quick-restock-input::-webkit-outer-spin-button {
+    opacity: 1;
+    margin: 0;
+}
+.quick-restock-submit {
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 7px 10px !important;
+    white-space: nowrap;
+}
+
+/* ORDER / TASK STATUS: move the select arrow inward and create
+   enough room between dropdown and action button. */
+.status-task-form,
+.status-order-form {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px !important;
+    min-width: 210px;
+    margin: 0;
+}
+.status-select {
+    box-sizing: border-box !important;
+    flex: 1 1 145px;
+    width: 100%;
+    min-width: 145px !important;
+    max-width: 190px;
+    min-height: 42px !important;
+    padding: 8px 38px 8px 12px !important;
+    border: 1px solid #e7d7df !important;
+    border-radius: 11px !important;
+    color: var(--mk-ink) !important;
+    background-color: #fffdfd !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath d='m3 5 4 4 4-4' fill='none' stroke='%237b2f50' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+    background-size: 14px 14px !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    line-height: 1.3;
+}
+.status-task-form button,
+.status-order-form button {
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 8px 12px !important;
+    white-space: nowrap;
+}
+
+/* ORDER HISTORY: vertically center the return-to-catalog action. */
+.container > .history-header {
+    display: flex;
+    align-items: center !important;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+.history-header .history-back {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 42px;
+    margin: 0 !important;
+    padding: 10px 16px !important;
+    line-height: 1.25 !important;
+    vertical-align: middle;
+    text-decoration: none !important;
+    white-space: nowrap;
+    position: static;
+}
+
+@media (max-width: 780px) {
+    /* On compact screens, remove floating objects from the text area. */
+    .auth-decoration { display: none !important; }
+    .auth-points { margin-bottom: 0 !important; }
+    .auth-point { background: rgba(255, 253, 251, .96) !important; }
+    .status-task-form,
+    .status-order-form { min-width: 0; }
+    .status-select { flex-basis: 145px; }
+}
+
+@media (max-width: 520px) {
+    .container > .history-header { align-items: stretch !important; }
+    .history-header .history-back { align-self: flex-start; }
+    .quick-restock-form { min-width: 0; }
+}
+
+/* ==========================================================
+   MAWARKUNTUM — OVERRIDE FIX 4 (12 NOV 2026)
+   High-specificity rules for controls affected by inline CSS
+   and shared global input styles. Keep the rose/sage/cream theme.
+   ========================================================== */
+
+/* LOGIN: no underline crossing the flower or brand name. */
+body.auth-page .auth-shell > a.auth-brand,
+body.auth-page .auth-shell > a.auth-brand:link,
+body.auth-page .auth-shell > a.auth-brand:visited,
+body.auth-page .auth-shell > a.auth-brand:hover,
+body.auth-page .auth-shell > a.auth-brand:active,
+body.auth-page .auth-shell > a.auth-brand span {
+    color: var(--mk-rose-900) !important;
+    text-decoration: none !important;
+    text-decoration-line: none !important;
+    border-bottom: 0 !important;
+    box-shadow: none !important;
+}
+body.auth-page .auth-shell > a.auth-brand {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    line-height: 1 !important;
+}
+body.auth-page .auth-brand-mark {
+    display: inline-grid !important;
+    place-items: center !important;
+    width: 42px !important;
+    height: 42px !important;
+    flex: 0 0 42px !important;
+    line-height: 1 !important;
+    text-decoration: none !important;
+}
+body.auth-page .auth-brand-name {
+    display: inline-block !important;
+    line-height: 1.2 !important;
+    text-decoration: none !important;
+}
+
+/* LOGIN: reserve a real lower strip for the decorative makeup cards. */
+body.auth-page .auth-story {
+    position: relative !important;
+    isolation: isolate !important;
+    padding-bottom: 30px !important;
+    gap: 18px !important;
+}
+body.auth-page .auth-story > div:first-child {
+    position: relative !important;
+    z-index: 3 !important;
+}
+body.auth-page .auth-points {
+    position: relative !important;
+    z-index: 4 !important;
+    width: 100% !important;
+    max-width: 470px !important;
+    margin: 0 0 112px !important;
+}
+body.auth-page .auth-point {
+    position: relative !important;
+    z-index: 4 !important;
+    min-width: 0 !important;
+    min-height: 62px !important;
+    padding: 11px 13px !important;
+    background: rgba(255, 253, 251, .98) !important;
+    border: 1px solid rgba(255, 255, 255, .98) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+body.auth-page .auth-point span {
+    flex: 0 0 30px !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+body.auth-page .auth-decoration {
+    right: 22px !important;
+    bottom: 18px !important;
+    z-index: 1 !important;
+    gap: 9px !important;
+    pointer-events: none !important;
+}
+body.auth-page .auth-decoration span {
+    background: rgba(255, 255, 255, .78) !important;
+}
+
+/* CATALOG: use one independent icon element and give the text its own space. */
+body.catalog-page .catalog-tools .catalog-search {
+    display: block !important;
+    position: relative !important;
+    width: min(360px, 100%) !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+}
+body.catalog-page .catalog-tools .catalog-search::before,
+body.catalog-page .catalog-tools .catalog-search::after {
+    content: none !important;
+    display: none !important;
+}
+body.catalog-page .catalog-tools .catalog-search .catalog-search-icon {
+    position: absolute !important;
+    z-index: 3 !important;
+    left: 16px !important;
+    top: 50% !important;
+    width: 13px !important;
+    height: 13px !important;
+    border: 2px solid var(--mk-rose-500) !important;
+    border-radius: 50% !important;
+    transform: translateY(-62%) !important;
+    pointer-events: none !important;
+}
+body.catalog-page .catalog-tools .catalog-search .catalog-search-icon::after {
+    content: "" !important;
+    position: absolute !important;
+    width: 7px !important;
+    height: 2px !important;
+    right: -6px !important;
+    bottom: -3px !important;
+    border-radius: 2px !important;
+    background: var(--mk-rose-500) !important;
+    transform: rotate(45deg) !important;
+    transform-origin: center !important;
+}
+body.catalog-page .catalog-tools .catalog-search input[type="search"] {
+    display: block !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    margin: 0 !important;
+    padding: 10px 15px 10px 48px !important;
+    text-indent: 0 !important;
+    line-height: 1.3 !important;
+    background-image: none !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+}
+
+/* CATALOG: the site-wide input padding was squeezing the quantity digit. */
+body.catalog-page .katalog-grid .produk-card .qty-box input.input-qty,
+body.catalog-page .katalog-grid .produk-card .qty-box input[type="number"].input-qty {
+    display: block !important;
+    box-sizing: border-box !important;
+    flex: 0 0 48px !important;
+    width: 48px !important;
+    min-width: 48px !important;
+    max-width: 48px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    text-align: center !important;
+    text-indent: 0 !important;
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    line-height: 40px !important;
+    color: var(--mk-rose-900) !important;
+    background: #fff !important;
+    appearance: textfield !important;
+    -moz-appearance: textfield !important;
+}
+body.catalog-page .katalog-grid .produk-card .qty-box button.btn-qty {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    flex: 0 0 36px !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+}
+body.catalog-page .katalog-grid .produk-card .qty-box input.input-qty::-webkit-inner-spin-button,
+body.catalog-page .katalog-grid .produk-card .qty-box input.input-qty::-webkit-outer-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+}
+
+/* WAREHOUSE: keep restock number and action side by side, compactly. */
+body:not(.catalog-page) .card table.inventory-restock-table {
+    width: 100% !important;
+    min-width: 820px !important;
+    table-layout: fixed !important;
+}
+body:not(.catalog-page) .card table.inventory-restock-table th:nth-child(1),
+body:not(.catalog-page) .card table.inventory-restock-table td:nth-child(1) { width: 34% !important; }
+body:not(.catalog-page) .card table.inventory-restock-table th:nth-child(2),
+body:not(.catalog-page) .card table.inventory-restock-table td:nth-child(2) { width: 14% !important; white-space: nowrap !important; }
+body:not(.catalog-page) .card table.inventory-restock-table th:nth-child(3),
+body:not(.catalog-page) .card table.inventory-restock-table td:nth-child(3) { width: 12% !important; white-space: nowrap !important; }
+body:not(.catalog-page) .card table.inventory-restock-table th:nth-child(4),
+body:not(.catalog-page) .card table.inventory-restock-table td:nth-child(4) { width: 29% !important; white-space: nowrap !important; }
+body:not(.catalog-page) .card table.inventory-restock-table th:nth-child(5),
+body:not(.catalog-page) .card table.inventory-restock-table td:nth-child(5) { width: 11% !important; white-space: nowrap !important; }
+body:not(.catalog-page) .card table.inventory-restock-table .quick-restock-form {
+    display: inline-flex !important;
+    flex-flow: row nowrap !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 7px !important;
+    width: max-content !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+}
+body:not(.catalog-page) .card table.inventory-restock-table .quick-restock-form input.quick-restock-input,
+body:not(.catalog-page) .card table.inventory-restock-table .quick-restock-form input[type="number"].quick-restock-input {
+    box-sizing: border-box !important;
+    display: block !important;
+    flex: 0 0 78px !important;
+    width: 78px !important;
+    min-width: 78px !important;
+    max-width: 78px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    margin: 0 !important;
+    padding: 5px 5px !important;
+    text-align: center !important;
+    font-variant-numeric: tabular-nums !important;
+}
+body:not(.catalog-page) .card table.inventory-restock-table .quick-restock-form .quick-restock-submit {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: auto !important;
+    min-width: 92px !important;
+    min-height: 40px !important;
+    margin: 0 !important;
+    padding: 7px 10px !important;
+    white-space: nowrap !important;
+    line-height: 1.2 !important;
+}
+body:not(.catalog-page) .card table.inventory-restock-table td:nth-child(3) .badge,
+body:not(.catalog-page) .card table.inventory-restock-table td:nth-child(3) b {
+    white-space: nowrap !important;
+}
+
+/* ORDER TASK SELECT: keep the arrow inset from the edge. */
+body .status-task-form select.status-select,
+body .status-order-form select.status-select {
+    box-sizing: border-box !important;
+    padding: 8px 42px 8px 13px !important;
+    background-position: right 14px center !important;
+    background-size: 13px 13px !important;
+}
+
+/* Compact screens: let the table scroll instead of squeezing columns. */
+@media (max-width: 780px) {
+    body.auth-page .auth-decoration { display: none !important; }
+    body.auth-page .auth-points { margin-bottom: 0 !important; }
+    body:not(.catalog-page) .card table.inventory-restock-table { min-width: 820px !important; }
+    body.catalog-page .catalog-tools .catalog-search { width: 100% !important; }
+}
+
+
+/* ==========================================================
+   MAWARKUNTUM UI FIX 5 — LAST DETAIL ADJUSTMENTS
+   Scope: customer order-history header and catalog quantity
+   controls only. Warehouse and order-staff layout is untouched.
+   ========================================================== */
+
+/* ORDER HISTORY: use balanced vertical padding so the return
+   button is centered in the full header, not pulled upward by
+   the old bottom-only padding rule. */
+body .container > .header.history-header {
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 14px !important;
+    min-height: 84px !important;
+    padding: 15px 18px !important;
+    margin: 0 0 20px !important;
+    border-bottom: 1px solid var(--mk-line) !important;
+}
+body .container > .header.history-header .history-back {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    align-self: center !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+    padding: 10px 17px !important;
+    line-height: 1.25 !important;
+    position: static !important;
+    transform: none !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+}
+
+/* CATALOG: the quantity control was stretching to the full card
+   width because the purchase form uses align-items: stretch.
+   Give the whole minus / number / plus group a compact fixed size. */
+body.catalog-page .katalog-grid .produk-card .form-beli .qty-box {
+    display: inline-flex !important;
+    align-self: center !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 144px !important;
+    width: 144px !important;
+    min-width: 144px !important;
+    max-width: 144px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: 1px solid #ead6df !important;
+    border-radius: 11px !important;
+    background: #fff !important;
+}
+body.catalog-page .katalog-grid .produk-card .form-beli .qty-box > .btn-qty {
+    display: inline-flex !important;
+    flex: 0 0 36px !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    line-height: 1 !important;
+}
+body.catalog-page .katalog-grid .produk-card .form-beli .qty-box > .input-qty {
+    display: block !important;
+    box-sizing: border-box !important;
+    flex: 0 0 70px !important;
+    width: 70px !important;
+    min-width: 70px !important;
+    max-width: 70px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    margin: 0 !important;
+    padding: 0 2px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    text-align: center !important;
+    line-height: 36px !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    background: #fff !important;
+}
+
+@media (max-width: 520px) {
+    body .container > .header.history-header {
+        min-height: 0 !important;
+        padding: 14px !important;
+    }
+    body .container > .header.history-header .history-back {
+        align-self: center !important;
+    }
+}

@@ -33,14 +33,14 @@ $res_orders = mysqli_query($conn, $q_orders);
         .btn-back { background: #555; color: white; padding: 8px 16px; text-decoration: none; border-radius: 5px; font-size: 13px; font-weight: bold; }
         .btn-back:hover { background: #333; }
     </style>
-    <link rel="stylesheet" href="assets/mawarkuntum-ui.css">
+    <link rel="stylesheet" href="assets/mawarkuntum-ui.css?v=20261112-fix4">
 </head>
 <body>
 
     <div class="container">
-        <div class="header">
+        <div class="header history-header">
             <h2>📦 Riwayat Pesanan Saya</h2>
-            <a href="katalog.php" class="btn-back">← Kembali ke Katalog</a>
+            <a href="katalog.php" class="btn-back history-back">← Kembali ke Katalog</a>
         </div>
 
         <table>

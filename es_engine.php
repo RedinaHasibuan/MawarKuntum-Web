@@ -60,6 +60,13 @@ function es_label_periode($tanggal) {
     return $t ? $bulan[(int) date('n', $t)] . ' ' . date('Y', $t) : '-';
 }
 
+/** Format nominal uang ke Rupiah untuk jawaban ES dinamis. */
+if (!function_exists('es_rp')) {
+    function es_rp($angka) {
+        return 'Rp ' . number_format((float) ($angka ?? 0), 0, ',', '.');
+    }
+}
+
 /** Ambil peta sinonim: kata sehari-hari => kata baku. */
 function es_muat_sinonim($es) {
     $peta = [];
